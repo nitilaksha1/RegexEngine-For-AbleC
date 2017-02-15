@@ -2,24 +2,25 @@
 
 #include<stdio.h>
 
-int main (int argc char ** argv) {
+int main (int argc, char ** argv) {
   
-  const char *text1 = "abaabb";  /*text to match*/
-  const char *text2 = "abcabc";  /*text to match*/
-  const char *reg = "(a|b)*abb"; /*regex used for matching*/
-  
-  //Matching the text1 against the regex
-  if (text1 =~ reg) {
-    printf("First text matches (correct)\n");
+  const char *text = "abaabb";  /*text to match*/
+
+  regex_t reg1 = "(a|b)*abb"; /*regex used for matching*/
+  regex_t reg2 = "(a)*bab"
+
+  //Matching the text against the regex1
+  if (text =~ reg1) {
+    printf("text matches first regex(correct)\n");
   } else {
-    printf("First text does not match (incorrect)\n");
+    printf("text does not match first regex(incorrect)\n");
   }
   
-  //Matching the text2 against the regex
-  if (text2 =~ reg) {
-    printf("Second text matches (incorrect)\n");
+  //Matching the text against the regex2
+  if (text =~ reg2) {
+    printf("text matches second regex(incorrect)\n");
   } else {
-    printf("Second text does not match (correct)\n");
+    printf("Second text does not match second regex(correct)\n");
   }
   
   return 0;
