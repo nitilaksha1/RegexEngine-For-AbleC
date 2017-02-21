@@ -6,6 +6,13 @@
 #include <string.h>
 #include <stdlib.h>
 
+typedef struct MAS {
+
+	int matched;
+	char *match;
+	char *rest;
+} MAS;
+
 eBool match (struct DFA * dfa, char * str) {
 	state state = get_start_state(dfa);
 	input in = str[0];
@@ -84,67 +91,77 @@ char* match_prefix_return(struct DFA * dfa, char * str)
 	}
 }
 
-/*eBool match_prefix (struct DFA * dfa, char * str) {
+MAS match_anywhere(struct DFA * dfa, char * str)
+{
 	state state = get_start_state(dfa);
 	int len = strlen(str);
-	int prevstate;
-	int prelookahead;
-
 	input in;
 	int i = 0;
+	int startMatchPos=0;
+	int endMatchPos=0;
+	int checkPos=0;
+	int matchFound=0;
+	
 
-	while ((in = str[i])!= '\0') {
-		prevstate = state;
+	while(str[checkPos]!='\0')
+	{
+		i=checkPos;
+		state = get_start_state(dfa);
 
-		state = (dfa->trans_table)[state][in];
-
-		if (is_final_state(dfa, state) == TRUE) {
-			prelookahead = state;
-			previ = i;
-
-			j = i + 1;
-
-			while ((in = str[j])!= '\0') {
-
+		if(matchFound)
+			break;
+		else
+		{
+			startMatchPos=checkPos;
+			while((in = str[i])!= '\0')
+			{
 				state = (dfa->trans_table)[state][in];
 
-				if (is_final_state(dfa, state) == TRUE) {
-					finalstatefound = TRUE;
-					state = prelookahead;
+				if (state == -1)
+				{
+					checkPos=checkPos+1;
 					break;
 				}
 
-				if (state == -1) {
-					invalidcharfound = TRUE;
-					state = prelookahead;
-					break;
+				if (is_final_state(dfa, state) == TRUE)
+				{
+					matchFound=1;
+
+					endMatchPos=i;
 				}
 
-				j++;
-			}
-
-			if (finalsinvalidcharfound == TRUE)
-				return TRUE;
-
-			if (invalidcharfound == TRUE)
-
-
-		}
-
-		if (state == -1)
-			break;
-
-		i++;
+				i++;
+			}	
+		}	
 	}
+	
+	MAS res;
 
-	if (i >=0 && i < len) {
-		return is_final_state(dfa, prevstate);
+	if(endMatchPos==0)
+	{
+		res.matched=0;
+		res.match=NULL;
+		res.rest=NULL;
+		return res;
 	}
-
-	if (is_final_state(dfa, state) == TRUE)
-		return TRUE;
 	else
-		return FALSE;
-}*/
+	{
+		int prefixSize=endMatchPos-startMatchPos+1;
+		int restSize=len-endMatchPos;
+		char* prefixArray = (char *) malloc (prefixSize * sizeof(char));
+		char* restArray = (char *) malloc (restSize * sizeof(char));	
+		
+		for(int i=startMatchPos, j=0;i<(prefixSize+startMatchPos) && j<prefixSize; i++, j++)
+			prefixArray[j]=str[i];
+
+		for(int i=endMatchPos+1, j=0; i<len && j<restSize;i++, j++)
+			restArray[j]=str[i];
+		//
+		res.matched=1;
+		res.match=prefixArray;
+		res.rest=restArray;
+		return res;
+	}
+}
 
 #endif

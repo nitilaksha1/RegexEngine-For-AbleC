@@ -1,4 +1,4 @@
-// File demonstrating the generated C code for 'StringPrefixWithMatchReturned.xc'
+// File demonstrating the generated C code for 'Match_Anywhere.xc'
 
 #include<stdio.h>
 #include "dfa.h"
@@ -27,37 +27,31 @@ int main (int argc, char ** argv) {
   add_trans (&dfa, 3, 1, 'a');
   add_trans (&dfa, 3, 0, 'b');
   
-  char *text1 = "abaabbabbababc";  /* good case to match */
-  char *text2 = "ababcabababb"; /* bad case to match */
+  char *text1 = "zabdaababbzzababb";  /* good case to match */
+  char *text2 = "ababcabababz"; /* bad case to match */
 
   // Matching the text against the regex1
   // Note that the regex got replaced by the dfa
-  char *res1 = match_prefix_return(&dfa, text1);
-  if(res1)
-  {
-    printf("\nThe longest matched prefix is: %s", res1);
-  }
-  else
-  {
-    printf("\nNo match found ");
-  }
 
-  free(res1);
+  MAS s1 = match_anywhere(&dfa, text1);
+  
+  while (s1.matched)
+  {
+    printf("\nMatched string: %s", s1.match);
+    printf("\nRest string: %s", s1.rest);
+    s1 = match_anywhere(&dfa, s1.rest);
+  }
   
   // Matching the text2 against the regex
   // Note that the regex got replaced by the dfa
-  char *res2 = match_prefix_return(&dfa, text2);
-  if(res2)
+  MAS s2 = match_anywhere(&dfa, text2);
+  while (s2.matched)
   {
-    printf("\nThe longest matched prefix is: %s", res2);
+    printf("\nMatched string: %s", s2.match);
+    s1 = match_anywhere(&dfa, s2.rest);
   }
-  else
-  {
-    printf("\nNo match found ");
-  }
-
-  free(res2);
 
   release_DFA (&dfa);
+
   return 0;
 }
