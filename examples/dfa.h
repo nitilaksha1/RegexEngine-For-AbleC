@@ -28,6 +28,7 @@ void init_DFA (struct DFA * dfa, state init_state, int size) {
 	dfa->initial_state = init_state;
 	dfa->final_state = (int *) malloc (size * sizeof(int));
 
+	// set all elements of final_state array to 0
 	for (int i = 0; i < size; i++)
 		dfa->final_state[i] = 0;
 
@@ -38,6 +39,7 @@ void init_DFA (struct DFA * dfa, state init_state, int size) {
     for (int i = 0; i < size; i++)
         (dfa->trans_table)[i] = (int *)malloc (CHARSET_SIZE * sizeof(int));
     
+    // set all elements of trans_table array to NONE
     for (int i = 0; i < size; i++) {
         for (int j = 0; j < CHARSET_SIZE; j++) {
             (dfa->trans_table)[i][j] = NONE;
@@ -76,117 +78,8 @@ void add_trans (struct DFA * dfa, state from, state to, input in) {
 	(dfa->trans_table)[from][in] = to;
 }
 
-eBool match (struct DFA * dfa, char * str) {
-	state state = get_start_state(dfa);
-	input in = str[0];
-	int i = 0;
-
-	while (str[i++] != '\0') {
-		state = (dfa->trans_table)[state][in];
-
-		if (state == -1)
-			break;
-
-		in = str[i];
-	}
-
-	if (is_final_state(dfa, state) == TRUE)
-		return TRUE;
-	else
-		return FALSE;
-}
-
-eBool match_prefix (struct DFA * dfa, char * str) {
-	state state = get_start_state(dfa);
-	int len = strlen(str);
-	unsigned prevstate;
-	input in;
-	int i = 0;
-
-	while ((in = str[i])!= '\0') {
-		prevstate = state;
-
-		state = (dfa->trans_table)[state][in];
-
-		if (state == -1)
-			break;
-
-		if (is_final_state(dfa, state) == TRUE)
-			return TRUE;
-
-		i++;
-	}
-
-	if (is_final_state(dfa, state) == TRUE)
-		return TRUE;
-	else
-		return FALSE;
-}
-
-/*eBool match_prefix (struct DFA * dfa, char * str) {
-	state state = get_start_state(dfa);
-	int len = strlen(str);
-	int prevstate;
-	int prelookahead;
-
-	input in;
-	int i = 0;
-
-	while ((in = str[i])!= '\0') {
-		prevstate = state;
-
-		state = (dfa->trans_table)[state][in];
-
-		if (is_final_state(dfa, state) == TRUE) {
-			prelookahead = state;
-			previ = i;
-
-			j = i + 1;
-
-			while ((in = str[j])!= '\0') {
-
-				state = (dfa->trans_table)[state][in];
-
-				if (is_final_state(dfa, state) == TRUE) {
-					finalstatefound = TRUE;
-					state = prelookahead;
-					break;
-				}
-
-				if (state == -1) {
-					invalidcharfound = TRUE;
-					state = prelookahead;
-					break;
-				}
-
-				j++;
-			}
-
-			if (finalsinvalidcharfound == TRUE)
-				return TRUE;
-
-			if (invalidcharfound == TRUE)
-
-
-		}
-
-		if (state == -1)
-			break;
-
-		i++;
-	}
-
-	if (i >=0 && i < len) {
-		return is_final_state(dfa, prevstate);
-	}
-
-	if (is_final_state(dfa, state) == TRUE)
-		return TRUE;
-	else
-		return FALSE;
-}*/
-
 void release_DFA (struct DFA * dfa) {
+	free (dfa->final_state);
 	free (dfa->trans_table);
 }
 

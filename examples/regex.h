@@ -46,11 +46,8 @@ eBool match_prefix (struct DFA * dfa, char * str) {
 
 		i++;
 	}
-
-	if (is_final_state(dfa, state) == TRUE)
-		return TRUE;
-	else
-		return FALSE;
+	
+	return FALSE;
 }
 
 /*eBool match_prefix (struct DFA * dfa, char * str) {
