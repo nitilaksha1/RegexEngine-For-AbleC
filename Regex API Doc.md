@@ -1,9 +1,9 @@
- # Regex API Doc #<br />
+ # __Regex API Doc__<br />
 The regular expression api's provided in this library are divided into two categories:
 * Regex test functions which check if a string matches a given regex
 * Regex match functions which return the string that is matched by regex<br />
 
- #__Regex test apis:__<br />
+__Regex test apis:__<br />
 
 These functions check if a given string matches a defined regular expression and returns a boolean result based on the success<br />
 or failure of the match.<br />
