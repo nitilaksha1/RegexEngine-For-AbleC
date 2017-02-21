@@ -17,4 +17,4 @@ Following functions fall in this category:<br /><br />
   * __struct matchInfo match_prefix (struct DFA * dfa, char * str):__ <br />
     Returns the longest prefix that matches the given regular expression. The matchInfo struct contains the first index of the<br />match in the string and the number of characters in the match.
   * __struct matchInfo match_anywhere(struct DFA * dfa, char * str):__ <br />
-    Returns the first matched substring that matches the regular expression. The matchInfo struct contains the index of the first character matched and the number of characters matched. It also returns the index of the first character <br /> following the matched substring so that the rest of the string can be queried for more matched using the returned<br /> truncated string. <br />
+    Returns the first matched substring that matches the regular expression. The matchInfo struct contains the index of the first character matched and the number of characters matched. It also returns the index of the first character following the matched substring so that the rest of the string can be queried for more matched using the returned truncated string. <br />
