@@ -50,6 +50,40 @@ eBool match_prefix (struct DFA * dfa, char * str) {
 	return FALSE;
 }
 
+char* match_prefix_return(struct DFA * dfa, char * str)
+{
+	state state = get_start_state(dfa);
+	int len = strlen(str);
+	input in;
+	int i = 0;
+	int startPos=0;
+	int endPos=0;
+
+	while((in = str[i])!= '\0')
+	{
+		state = (dfa->trans_table)[state][in];
+
+		if (state == -1)
+			break;
+
+		if (is_final_state(dfa, state) == TRUE)
+			endPos=i;
+
+		i++;
+	}
+
+	if(endPos==0)
+		return NULL;
+	else
+	{
+		int size=endPos-startPos+1;
+		char* res = (char *) malloc (size * sizeof(char));	
+		for(int i=0;i<size;i++)
+			res[i]=str[i];
+		return res;
+	}
+}
+
 /*eBool match_prefix (struct DFA * dfa, char * str) {
 	state state = get_start_state(dfa);
 	int len = strlen(str);
