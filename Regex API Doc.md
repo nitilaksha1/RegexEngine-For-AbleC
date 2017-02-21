@@ -6,11 +6,11 @@ The regular expression api's provided in this library are divided into two categ
 * __Regex test apis:__<br />
 These functions check if a given string matches a defined regular expression and returns a boolean result based on the success<br />
 or failure of the match.<br />
-Following functions fit in this category:<br /><br />
+Following functions fit in this category:<br />
   * __eBool test_full_string (struct DFA * dfa, char * str):__ <br />
     Returns true if the prefix of the given string matches the regular expression.<br />
   * __eBool test_string_prefix (struct DFA * dfa, char * str):__<br />
-    Returns true if the entire string matches the regular expression.<br />
+    Returns true if the entire string matches the regular expression.<br /><br />
 * __Regex Match Functions:__<br />
 These functions return the matched string for a given regular expression if a match exists.<br />
 Following functions fall in this category:<br /><br />
