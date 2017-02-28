@@ -10,6 +10,7 @@ typedef struct matchInfo {
 
 	int startindex;
 	int matchlength;
+	int nextpos;
 	eBool matchfound;
 } matchInfo;
 
@@ -84,18 +85,19 @@ matchInfo match_prefix (struct DFA * dfa, char * str)
 		minfo.startindex = -1;
 		minfo.matchlength = -1;
 		minfo.matchfound = FALSE;
+		minfo.nextpos = -1;
+		
+		return minfo;
 	}
-		return NULL;
 	else
 	{
 		int size=endPos-startPos+1;
 		minfo.startindex = startPos;
 		minfo.matchlength = size;
+		minfo.nextpos = -1;
 		minfo.matchfound = TRUE;
-		char* res = (char *) malloc (size * sizeof(char));	
-		for(int i=0;i<size;i++)
-			res[i]=str[i];
-		return res;
+		
+		return minfo;
 	}
 }
 
@@ -147,9 +149,10 @@ matchInfo match_anywhere (struct DFA * dfa, char * str)
 
 	if(endMatchPos == 0)
 	{
-		res.matched = 0;
-		res.match=NULL;
-		res.rest=NULL;
+		res.startindex = -1;
+		res.matchlength= -1;
+		res.nextpos = endPos + 1;
+		res.matchfound = FALSE;
 		return res;
 	}
 	else
@@ -165,9 +168,11 @@ matchInfo match_anywhere (struct DFA * dfa, char * str)
 		for(int i=endMatchPos+1, j=0; i<len && j<restSize;i++, j++)
 			restArray[j]=str[i];
 		//
-		res.matched=1;
-		res.match=prefixArray;
-		res.rest=restArray;
+		res.matchfound = TRUE;
+		res.startindex = startMatchPos;
+		res.matchlength = prefixSize;
+		res.nextpos = endMatchPos + 1;
+		
 		return res;
 	}
 }
