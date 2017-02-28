@@ -6,14 +6,14 @@
 #include <string.h>
 #include <stdlib.h>
 
-typedef struct MAS {
+typedef struct matchInfo {
 
-	int matched;
-	char *match;
-	char *rest;
-} MAS;
+	int startindex;
+	int matchlength;
+	eBool matchfound;
+} matchInfo;
 
-eBool match (struct DFA * dfa, char * str) {
+eBool test_full_string (struct DFA * dfa, char * str) {
 	state state = get_start_state(dfa);
 	input in = str[0];
 	int i = 0;
@@ -33,7 +33,7 @@ eBool match (struct DFA * dfa, char * str) {
 		return FALSE;
 }
 
-eBool match_prefix (struct DFA * dfa, char * str) {
+eBool test_string_prefix (struct DFA * dfa, char * str) {
 	state state = get_start_state(dfa);
 	int len = strlen(str);
 	unsigned prevstate;
@@ -57,7 +57,7 @@ eBool match_prefix (struct DFA * dfa, char * str) {
 	return FALSE;
 }
 
-char* match_prefix_return(struct DFA * dfa, char * str)
+matchInfo match_prefix (struct DFA * dfa, char * str)
 {
 	state state = get_start_state(dfa);
 	int len = strlen(str);
@@ -65,7 +65,8 @@ char* match_prefix_return(struct DFA * dfa, char * str)
 	int i = 0;
 	int startPos=0;
 	int endPos=0;
-
+	matchInfo minfo;
+	
 	while((in = str[i])!= '\0')
 	{
 		state = (dfa->trans_table)[state][in];
@@ -79,11 +80,18 @@ char* match_prefix_return(struct DFA * dfa, char * str)
 		i++;
 	}
 
-	if(endPos==0)
+	if(endPos==0) {
+		minfo.startindex = -1;
+		minfo.matchlength = -1;
+		minfo.matchfound = FALSE;
+	}
 		return NULL;
 	else
 	{
 		int size=endPos-startPos+1;
+		minfo.startindex = startPos;
+		minfo.matchlength = size;
+		minfo.matchfound = TRUE;
 		char* res = (char *) malloc (size * sizeof(char));	
 		for(int i=0;i<size;i++)
 			res[i]=str[i];
@@ -91,7 +99,7 @@ char* match_prefix_return(struct DFA * dfa, char * str)
 	}
 }
 
-MAS match_anywhere(struct DFA * dfa, char * str)
+matchInfo match_anywhere (struct DFA * dfa, char * str)
 {
 	state state = get_start_state(dfa);
 	int len = strlen(str);
@@ -101,7 +109,7 @@ MAS match_anywhere(struct DFA * dfa, char * str)
 	int endMatchPos=0;
 	int checkPos=0;
 	int matchFound=0;
-	
+	matchInfo minfo;
 
 	while(str[checkPos]!='\0')
 	{
@@ -135,11 +143,11 @@ MAS match_anywhere(struct DFA * dfa, char * str)
 		}	
 	}
 	
-	MAS res;
+	matchInfo res;
 
-	if(endMatchPos==0)
+	if(endMatchPos == 0)
 	{
-		res.matched=0;
+		res.matched = 0;
 		res.match=NULL;
 		res.rest=NULL;
 		return res;
