@@ -1,4 +1,4 @@
-  #__Regex API Doc__#<br />
+  ### Regex API Doc
 The regular expression api's provided in this library are divided into two categories:
 * Regex test functions which check if a string matches a given regex
 * Regex match functions which return the string that is matched by regex<br />
