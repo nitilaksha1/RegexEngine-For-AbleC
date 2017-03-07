@@ -29,3 +29,26 @@
 
 #### Action items:
 * Document the generated C code for the disucssed functions.
+
+### Date: 02/21/2016
+#### Attendees: Prof. Eric Van Wyk, Ambuj Nayan, Nitilaksha Halakatti
+
+#### Discussion Points:
+* Demonstration of the following four functions:
+  * FullStringMatch.c  
+  * Match_Anywhere.c
+  * StringPrefixMatch.c
+  * StringPrefixMatchWithMatchReturned.c
+* Instead of returning matched strings, return pointer to match.
+* Users can extract the string based on the returned indices.
+* Change the names of the functions.
+* Try to implement the regex engine in OCaml before attempting the implementation in Silver.
+
+#### Action items:
+* Code cleanup 
+* Change function names
+* Think of implementation in OCaml
+* Document the API
+
+
+
