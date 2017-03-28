@@ -56,7 +56,19 @@ operatorFunctions =
      ('*',doStar),
      ('(',doParen),
      (')',doParen)]
-
+     
+-- Takes the ParseContext result from the call to parseRegex
+-- and converts it to the NFA structure and returns it
+convertToNFA str = let context = snd $ parseRegex str
+                       transTable = transitions context
+                       startNode = last $ nodeList context
+                       finalNode = head $ nodeList context
+                       valueSet = values context
+                   in FiniteMachine { table = transTable, 
+                                      start = startNode, 
+                                      final = Set.singleton finalNode,
+                                      alphabet = valueSet}
+                                      
 -- The state that gets passed around which we used to build up the NFA
 data ParseContext = Context 
                     {
