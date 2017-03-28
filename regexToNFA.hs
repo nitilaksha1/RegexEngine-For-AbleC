@@ -57,6 +57,7 @@ operatorFunctions =
      ('(',doParen),
      (')',doParen)]
      
+-- MAIN FUNCTION WHERE EXECUTION STARTS
 -- Takes the ParseContext result from the call to parseRegex
 -- and converts it to the NFA structure and returns it
 convertToNFA str = let context = snd $ parseRegex str
@@ -90,7 +91,6 @@ getPrecedence x = fromJust $ lookup x operatorList
 isOperator x = isJust $ lookup x operatorList
 isValue x = not $ isOperator x
 
--- MAIN FUNCTION WHERE EXECUTION STARTS
 --mapM_ is useful for executing something only for its side effects
 parseRegex str = (runState $
               do
