@@ -43,6 +43,8 @@ e::NFA ::= l::NFA r::NFA
 	transition.transChar = '^';
 	e.transTable = transition :: e.transTable;
 
+	--APPEND TRANSITIONS OF RIGHT CHILD NFA TO THE RESULTANT TRANSITION TABLE
+	e.transtable = e.transtable ++ addToTransTable(r.transtable, 1 + l.statecount);
 
 	-- Add all the transitions of the right NFA to the resultant NFA
 	e.transTable = e.transTable ++ addToTransTable(r.transTable, 1 + l.stateCount);
@@ -131,6 +133,7 @@ e :: NFA ::= param :: String
 	transition.transchar = param;
 	e.transTable = transition :: e.TransTable
 }
+
 
 function addToTransTable
 [Transition] ::= transitions::[Transition] offset::Integer
