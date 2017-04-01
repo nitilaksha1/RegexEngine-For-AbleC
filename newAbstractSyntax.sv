@@ -1,127 +1,136 @@
+-- Need a way to represent epsilon character in Silver
+-- have decided to use '^' for time being
 
-nonterminal Nfa with statecount, finalstates, transtable;
-nonterminal Transition;
-synthesized attribute statecount :: Integer;
-synthesized attribute finalstates :: [Integer];
-synthesized attribute transtable :: [Transition];
-attribute fromstate::Integer;
-attribute tostate::Integer;
-attribute transchar::RegexChar_t;
-attribute fromstate occurs on Transition;
-attribute tostate occurs on Transition;
-attribute transchar occurs on Transition;
+-- NFA is a type with three arributes which are stateCount, list of finalStates and transTable
+nonterminal NFA with stateCount, finalStates, transTable;
 
+-- Transition is a type with three types which are fromState, toState and transChar
+nonterminal Transition with fromState, toState, transChar;
+
+synthesized attribute stateCount :: Integer;
+synthesized attribute finalStates :: Integer;
+synthesized attribute transTable :: [Transition];
+
+attribute fromState :: Integer;
+attribute toState :: Integer;
+attribute transChar :: RegexChar_t;
+
+-- Abstract production to handle Alternate (|) operator
 abstract production AlternationOp
-e::Nfa ::= l::Nfa r::Nfa
+e::NFA ::= l::NFA r::NFA
 {
-	e.statecount = l.statecount + r.statecount + 2;
+	-- Resultant state count will be the sum of the state counts of the left NFA and the right NFA
+	e.stateCount = l.stateCount + r.stateCount + 2;
 
-	local attribute transition::Transition;
-	transition.fromstate = 0;
-	transition.tostate = 1;
-	
-	--FIGURE OUT A EPISLON CHARACTER TO REPRESENT IN SILVER
-	transition.transchar = '^';
+	local attribute transition :: Transition;
+	transition.fromState = 0;
+	transition.toState = 1;
+	transition.transChar = '^';
+	e.transTable = transition :: e.transTable;
 
-	e.transtable = transition::e.transtable;
+	-- Add all the transitions of the left NFA to the resultant NFA
+	e.transTable = e.transTable ++ addToTransTable(l.transTable, 1);
 
-	--APPEND TRANSITIONS OF LEFT CHILD NFA TO THE RESULTANT TRANSITION TABLE
-	e.transtable = e.transtable ++ addToTransTable(l.transtable, 1);
+	-- Connect the intermediate final state of left NFA to resultant final state
+	transition.fromState = l.stateCount;
+	transition.toState = e.stateCount - 1;
+	transition.transChar = '^';
+	e.transTable = transition :: e.transTable;
 
-	--APPEND INTERMEDIATE FINAL STATE OF LEFT NFA TO RESULTANT FINAL STATE
-	transition.fromstate = l.statecount;
-	transition.tostate = e.statecount - 1;
-	transition.transchar = '^';
+	-- Connect the start state of the resultant NFA to the start state of right NFA
+	transition.fromState = 0;
+	transition.toState = l.stateCount + 1;
+	transition.transChar = '^';
+	e.transTable = transition :: e.transTable;
 
-	e.transtable = transition::e.transtable;
 
-	--AGAIN FIGURE OUT A CHARACTER TO REPRESENT THIS EPSILON TRANSITION
-	transition.fromstate = 0;
-	transition.tostate = l.statecount + 1;
-	transition.transchar = '^';
+	-- Add all the transitions of the right NFA to the resultant NFA
+	e.transTable = e.transTable ++ addToTransTable(r.transTable, 1 + l.stateCount);
 
-	e.transtable = transition::e.transtable;
+	-- Connect the final state of the right NFA to the resultant NFA
+	transition.fromState = l.stateCount + r.stateCount;
+	transition.toState = e.stateCount - 1;
+	transition.transChar = '^';
+	e.transTable = transition :: e.transTable;
 
-	--APPEND TRANSITIONS OF RIGHT CHILD NFA TO THE RESULTANT TRANSITION TABLE
-	e.transtable = e.transtable ++ addToTransTable(r.transtable, 1 + l.statecount);
-
-	--APPEND INTERMEDIATE FINAL STATE OF RIGHT NFA TO RESULTANT FINAL STATE
-	transition.fromstate = l.statecount + r.statecount;
-	transition.tostate = e.statecount - 1;
-	transition.transchar = '^';
-
-	e.transtable = transition::e.transtable;
-
-	e.finalstates = (e.statecount - 1) :: e.finalstates; 
-
+	-- May be needed in future in case of design change
+	e.finalStates = (e.stateCount - 1) :: e.finalStates;
 }
 
+-- Abstract production to handle Kleene (*) operator
 abstract production KleeneOp
-e::Nfa ::= param::Nfa
+e::NFA ::= param::NFA
 {
-	e.statecount = param.statecount + 2;
+	-- Two extra states will get added
+	e.stateCount = param.stateCount + 2;
 
+	-- Add an epsilon transition to the start of the child NFA
 	local attribute transition::Transition;
+	transition.fromState = 0;
+	transition.toState = 1;
+	transition.transChar = '^';
+	e.transTable = transition :: e.transTable;
 
-	--EPSILON TRANSITION TO START NODE OF THE CHILD NFA
-	transition.fromstate = 0;
-	transition.tostate = 1;
+	-- Add all the transitions of the child NFA to the resultant NFA
+	e.transTable = e.transTable ++ addToTransTable(param.transTable, 1);
+
+	-- Add an epsilon transition to the end of the child NFA
+	transition.fromState = param.stateCount;
+	transition.toState = param.stateCount + 1;
+	transition.transChar = '^';
+	e.transTable = transition :: e.transTable;
+
+	-- An an epsilon transition from the end of the child NFA to state 1
+	transition.fromState = param.stateCount;
+	transition.toState = 1;
+	transition.transChar = '^';
+	e.transTable = transition :: e.transTable;
+
+	-- Add an epsilon transition from state 0 to the end state
+	transition.fromState = 0;
+	transition.toState = param.stateCount + 1;
 	transition.transchar = '^';
+	e.transTable = transition :: e.transTable
 
-	e.transtable = transition::e.transtable;
-
-	--APPEND TRANSITION OF THE CHILD NFA TO THE RESULTANT NFA
-	e.transtable = e.transtable ++ addToTransTable(param.transtable, 1);
-
-	--ANOTHER EPSILON TRANSITION CONNECTING TO THE END
-	transition.fromstate = param.statecount;
-	transition.tostate = param.statecount + 1;
-	transition.transchar = '^';
-
-	e.transtable = transition::e.transtable;
-
-	--ANOTHER EPSILON TRANSITION CONNECTING TO THE END
-	transition.fromstate = param.statecount;
-	transition.tostate = 1;
-	transition.transchar = '^';
-
-	e.transtable = transition::e.transtable;
-
-	--ANOTHER EPSILON TRANSITION CONNECTING TO THE END
-	transition.fromstate = 0;
-	transition.tostate = param.statecount + 1;
-	transition.transchar = '^';
-
-	e.finalstates = (e.statecount + 1) :: e.finalstates;
+	-- May be needed in future in case of design change
+	-- e.finalStates = (e.stateCount + 1) :: e.finalStates;
 }
 
---ONLY ONE ASSUMPTION WORRIES ME, IN C++ CODE IT ASSUMES FOR EACH NFA THERE IS ONLY ONE FINAL STATE
---HOW DO WE CONNECT THE FIRST NFA TO THE SECOND NFA IF THE FIRST ONE HAS MORE THAN ONE FINAL STATE?
--- ONE APPROACH WOULD BE TO HAVE EPSILON TRANSITIONS FROM EVERY FINAL STATE IN FIRST NFA TO THE START NODE OF SECOND NFA
---ALSO I THINK NFA'S WILL HAVE ONLY ONE FINAL STATE AS ALL THE FINAL STATES WOULD CONVERGE TO ONE FINAL STATE VIA EPSILON TRANSITIONS
+-- Abstract production to concatenate two NFAs and produce the resultant NFA
 abstract production ConcatOp
-e::Nfa ::= l::Nfa r::Nfa
+e :: NFA ::= l :: NFA r :: NFA
 {
-	e.statecount = l.statecount + r.statecount;
+	-- The number of states in the resulting NFA will be the sum of vertices in the concatenated NFAs
+	e.stateCount = l.stateCount + r.stateCount;
 	
-	--APPEND TRANSITION OF LEFTCHILD NFA TO THE RESULTANT NFA
-	e.transtable = e.transtable ++ addToTransTable(l.transtable, 0);
+	-- Add all the transitions of the left NFA to the resultant NFA
+	e.transTable = e.transTable ++ addToTransTable(l.transTable, 0);
 
-	local attribute transition::Transition;
+	-- Add an epsilon transition from final state of left NFA to the start state of the right NFA
+	local attribute transition :: Transition;
+	transition.fromState = l.stateCount - 1;
+	transition.toState = l.stateCount;
+	transition.transChar = '^';
+	e.transTable = transition :: e.TransTable
 
-	--CONNECT FINAL STATES OF LEFT NFA TO START NODE OF RIGHT NFA USING AN EPSILON TRANSITION AND POPULATE RESULTANT TABLE
-	--e.transtable = e.transtable ++ finalStateConnectionForConcat(l.finalstates, l.statecount, '^');
-	
-	transition.fromstate = l.statecount - 1;
-	transition.tostate = l.statecount;
-	transition.transchar = '^';
+	-- Add all the transitions of the right NFA to the resultant NFA
+	e.transTable = e.transTable ++ addToTransTable(r.transTable, l.stateCount);
 
-	--APPEND TRANSITIONS OF RIGHT CHILD NFA TO THE RESULTANT NFA
-	e.transtable = e.transtable ++ addToTransTable(r.transtable, l.statecount);
-
-	e.finalstates = (l.statecount + r.statecount - 1) :: e.finalstates;
+	-- May be needed in future in case of design change
+	-- e.finalStates = (l.stateCount + r.stateCount - 1) :: e.finalStates;
 }
 
+-- Abstract production to create a new NFA for a single unit
+abstract production NewNfa
+e :: NFA ::= param :: String
+{
+	e.stateCount = 2;
+	local attribute transition :: Transition;
+	transition.fromState = 0;
+	transition.toState = 1;
+	transition.transchar = param;
+	e.transTable = transition :: e.TransTable
+}
 
 function addToTransTable
 [Transition] ::= transitions::[Transition] offset::Integer
@@ -129,26 +138,31 @@ function addToTransTable
 	  return if null(transitions)
 			then []
 			else
-				local attribute transition::Transition = head(transitions);
+				local attribute transition :: Transition = head(transitions);
 				transition.fromstate = transition.fromstate + offset;
 				transition.tostate = transtion. tostate + offset;
 				transition :: addToTransTable(tail(transitions), offset);	
 }
 
+
+-- Code from here till the end of the page has been commented
+
+{--
+
 function finalStateConnectionForConcat
-[Transition] ::= finalstates::[Integer] tostate::Integer transchar::RegexChar_t 
+[Transition] ::= finalStates::[Integer] toState::Integer transChar::RegexChar_t 
 {
-	return if null(finalstates)
+	return if null(finalStates)
 		then []
 		else
-			local attribute transition::Transition;
-			transition.fromstate = head(finalstates);
-			transition.tostate = tostate;
-			transition.transchar = transchar;
+			local attribute transition :: Transition;
+			transition.fromState = head(finalstates);
+			transition.toState = tostate;
+			transition.transChar = transchar;
 			transition :: finalStateConnectionForConcat(tail(finalstates), tostate, transchar);		
 }
 
-{--
+
 function setFinalStatesForConcat
 [Integer] ::= finalstates::[Integer] offset::Integer
 {
@@ -157,4 +171,5 @@ function setFinalStatesForConcat
 		else
 			(head(finalstates) + offset) :: setFinalStatesForConcat(tail(finalstates), offset);
 }
+
 --}

@@ -16,17 +16,10 @@ nonterminal Regex_B with nfa;
 nonterminal Regex_Sim with nfa;
 nonterminal Regex_CHAR with nfa;
 
-synthesized attribute nfa :: Nfa
-nonterminal Nfa with statecount, finalstates, transtable;
-nonterminal Transition;
-synthesized attribute statecount :: Integer;
-synthesized attribute finalstates :: [Integer];
-synthesized attribute transtable :: [Transition];
-attribute fromstate occurs on Transition;
-attribute tostate occurs on Transition;
-attribute transchar occurs on Transition;
+synthesized attribute nfa :: NFA
 
 concrete production regex_c
+-- Some changes might be needed here
 e::cnc:PrimaryExpr_c ::= d1::RegexBegin_t  re::Regex_RE  d2::RegexEnd_t
 layout {}
 {
