@@ -22,34 +22,27 @@ e::NFA ::= l::NFA r::NFA
 	-- Resultant state count will be the sum of the state counts of the left NFA and the right NFA
 	e.stateCount = l.stateCount + r.stateCount + 2;
 
+	-- Create a new epsilon transition
 	local attribute transition :: Transition;
-	transition.fromState = 0;
-	transition.toState = 1;
-	transition.transChar = '^';
+	transition = createTrans(0, 1, '^');
 	e.transTable = transition :: e.transTable;
 
 	-- Add all the transitions of the left NFA to the resultant NFA
 	e.transTable = e.transTable ++ addToTransTable(l.transTable, 1);
 
 	-- Connect the intermediate final state of left NFA to resultant final state
-	transition.fromState = l.stateCount;
-	transition.toState = e.stateCount - 1;
-	transition.transChar = '^';
+	transition = createTrans(l.stateCount, e.stateCount - 1, '^');
 	e.transTable = transition :: e.transTable;
 
 	-- Connect the start state of the resultant NFA to the start state of right NFA
-	transition.fromState = 0;
-	transition.toState = l.stateCount + 1;
-	transition.transChar = '^';
+	transition = createTrans(0, l.stateCount + 1, '^');
 	e.transTable = transition :: e.transTable;
 
 	-- Add all the transitions of the right NFA to the resultant NFA
 	e.transTable = e.transTable ++ addToTransTable(r.transTable, 1 + l.stateCount);
 
 	-- Connect the final state of the right NFA to the resultant NFA
-	transition.fromState = l.stateCount + r.stateCount;
-	transition.toState = e.stateCount - 1;
-	transition.transChar = '^';
+	transition = createTrans(l.stateCount + r.stateCount, e.stateCount - 1, '^');
 	e.transTable = transition :: e.transTable;
 
 	-- May be needed in future in case of design change
@@ -65,30 +58,22 @@ e::NFA ::= param::NFA
 
 	-- Add an epsilon transition to the start of the child NFA
 	local attribute transition::Transition;
-	transition.fromState = 0;
-	transition.toState = 1;
-	transition.transChar = '^';
+	transition = createTrans(0, 1, '^');
 	e.transTable = transition :: e.transTable;
 
 	-- Add all the transitions of the child NFA to the resultant NFA
 	e.transTable = e.transTable ++ addToTransTable(param.transTable, 1);
 
 	-- Add an epsilon transition to the end of the child NFA
-	transition.fromState = param.stateCount;
-	transition.toState = param.stateCount + 1;
-	transition.transChar = '^';
+	transition = createTrans(param.stateCount, param.stateCount + 1, '^');
 	e.transTable = transition :: e.transTable;
 
 	-- An an epsilon transition from the end of the child NFA to state 1
-	transition.fromState = param.stateCount;
-	transition.toState = 1;
-	transition.transChar = '^';
+	transition = createTrans(param.stateCount, 1, '^');
 	e.transTable = transition :: e.transTable;
 
 	-- Add an epsilon transition from state 0 to the end state
-	transition.fromState = 0;
-	transition.toState = param.stateCount + 1;
-	transition.transchar = '^';
+	transition = createTrans(0, param.stateCount + 1, '^');
 	e.transTable = transition :: e.transTable
 
 	-- May be needed in future in case of design change
@@ -107,9 +92,7 @@ e :: NFA ::= l :: NFA r :: NFA
 
 	-- Add an epsilon transition from final state of left NFA to the start state of the right NFA
 	local attribute transition :: Transition;
-	transition.fromState = l.stateCount - 1;
-	transition.toState = l.stateCount;
-	transition.transChar = '^';
+	transition = createTrans(l.stateCount - 1, l.stateCount, '^');
 	e.transTable = transition :: e.TransTable
 
 	-- Add all the transitions of the right NFA to the resultant NFA
@@ -121,16 +104,23 @@ e :: NFA ::= l :: NFA r :: NFA
 
 -- Abstract production to create a new NFA for a single unit
 abstract production NewNfa
-e :: NFA ::= param :: String
+e :: NFA ::= param :: RegexChar_t
 {
 	e.stateCount = 2;
 	local attribute transition :: Transition;
-	transition.fromState = 0;
-	transition.toState = 1;
-	transition.transchar = param;
+	transition = createTrans(0, 1, param);
 	e.transTable = transition :: e.TransTable
 }
 
+-- Abstract production for epsilon transition
+abstract production NewEpsilonTrans
+e :: NFA ::=
+{
+	e.stateCount = 2;
+	local attribute transition :: Transition;
+	transition = createTrans(0, 1, '^');
+	e.transTable = transition :: e.TransTable
+}
 
 function addToTransTable
 [Transition] ::= transitions::[Transition] offset::Integer
@@ -144,6 +134,15 @@ function addToTransTable
 				transition :: addToTransTable(tail(transitions), offset);	
 }
 
+function createTrans
+Transition ::= fromState :: Integer toState :: Integer transChar :: RegexChar_t
+{
+	local attribute transition :: Transition;
+	transition.fromState = fromState;
+	transition.toState = toState;
+	transition.transChar = transChar;
+	return transition; 
+}
 
 -- Code from here till the end of the page has been commented
 
