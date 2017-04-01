@@ -43,9 +43,6 @@ e::NFA ::= l::NFA r::NFA
 	transition.transChar = '^';
 	e.transTable = transition :: e.transTable;
 
-	--APPEND TRANSITIONS OF RIGHT CHILD NFA TO THE RESULTANT TRANSITION TABLE
-	e.transtable = e.transtable ++ addToTransTable(r.transtable, 1 + l.statecount);
-
 	-- Add all the transitions of the right NFA to the resultant NFA
 	e.transTable = e.transTable ++ addToTransTable(r.transTable, 1 + l.stateCount);
 
@@ -56,7 +53,7 @@ e::NFA ::= l::NFA r::NFA
 	e.transTable = transition :: e.transTable;
 
 	-- May be needed in future in case of design change
-	e.finalStates = (e.stateCount - 1) :: e.finalStates;
+	-- e.finalStates = (e.stateCount - 1) :: e.finalStates;
 }
 
 -- Abstract production to handle Kleene (*) operator
