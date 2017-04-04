@@ -3,10 +3,13 @@
 
 -- NFA is a type with three arributes which are stateCount, list of finalStates and transTable
 nonterminal NFA with stateCount, finalStates, transTable;
+nonterminal DFA with startState, stateList, finalStates, transTable;
 
 -- Transition is a type with three types which are fromState, toState and transChar
 nonterminal Transition with fromState, toState, transChar;
 
+synthesized attribute stateList :: [[Integer]];
+synthesized attribute startState :: Integer;
 synthesized attribute stateCount :: Integer;
 synthesized attribute finalStates :: Integer;
 synthesized attribute transTable :: [Transition];
@@ -146,6 +149,147 @@ Transition ::= fromState :: Integer toState :: Integer transChar :: RegexChar_t
 
 -- Code from here till the end of the page has been commented
 
+function epsClosure1
+[Integer] ::= nfa::NFA t::[Integer] mainlist::[Integer]
+{
+	return if null(t)
+		then []
+		else
+			epslist = transitionsFromState(head(t), nfa.transTable, '^', mainlist);
+			mainlist = mainlist ++ epslist;
+			epslist = epslist ++ epsClosure(nfa, tail(t), mainlist);
+}
+function epsClosure
+[Integer] ::= nfa::NFA t::[Integer] mainlist::[Integer]
+{
+	return if null(t)
+		then []
+		else
+			local attribute epslist :: [Integer];
+			epslist = epslist ++ transitionsFromState(head(t), nfa.transTable, '^',  epslist) ++ epsClosure(nfa, tail(t));
+}
+
+function transitionsFromState 
+[Integer] ::= t::Integer transitions::[Transition] transchar::RegexChar_t mainlist::[Integer]
+{
+	return if null(transitions)
+		then []
+		else
+			local attribute transition :: Transition;
+			transition = head(transitions);
+
+			if transition.fromState == t && transition.transChar == transchar then
+				if isStatePresent(transition.toState, mainlist) == false then
+					mainlist = transition.toState :: mainlist;
+					transition.toState :: transitionsFromState(t, tail(transitions), mainlist);
+			else
+				transitionsFromState(t, tail(transitions));
+}
+
+function isStatePresent
+Boolean ::= state::Integer statelist::[Integer]
+{
+	return if null(statelist)
+		then false;
+		else
+			if state == head(statelist) 
+			then true;
+			else
+				isStatePresent(state, tail(statelist));
+}
+
+function removeDups
+[Integer] ::= list::[Integer] seen::[Integer]
+{
+	return if null(list)
+		then [];
+		else
+			if isStatePresent(head(list), seen) == true
+				then removeDups(tail(list), seen);
+			else
+				seen = head(list) :: seen;
+				head(list) :: removeDups(tail(list), seen);
+}
+
+function move
+[Integer] ::= t:[Integers] inputchar::RegexChar_t transitions::[Transitions]
+{
+	return if null(t)
+		then []
+		else
+			local attribute statelist::[Integer];
+			statelist = statelist ++ transitionsFromState (head(t), transitions, inputchar, statelist) ++ move (tail(t), inputchar, transitions);
+}
+
+function subsetConstruction
+DFA ::= nfa::NFA
+{
+	local attribute dfa :: DFA;
+	local attribute states :: [[Integer]];
+
+	dfa.startState = epsClosure(nfa.startState);
+	states = dfa.startState :: states;
+
+	dfa = createDFA (nfa, states);
+	return dfa;
+}
+
+function createDFA
+DFA ::= nfa::NFA dfa::DFA states::[[Integer]]
+{
+	if null(states)
+		then return dfa;
+	else
+		local attribute state :: [Integer] = head(states);
+		
+		if isStatePresent(nfa.finalStates, state) == true
+			dfa.finalStates = state :: dfa.finalStates;
+
+		dfa = createDFATransitions (state, nfa.inputs, dfa); 		
+
+		dfa.states = removeCurrentState (state, states);
+
+		return createDFA(nfa, dfa, dfa.states); 
+}
+
+function createDFATransitions 
+DFA ::=	inputs::[RegexChar_t] dfa::DFA state::[Integer]
+{
+	if null(inputs)
+		return dfa;
+	else
+		local attribute epsclosurelist:: [Integer];
+		
+		epsclosurelist = epsClosure (nfa, move(state, head(inputs)));  
+
+		if presentinDFAStates(epsclosurelist, dfa.states) == false
+			then dfa.states = epsclosurelist :: dfa.states;
+
+		local dfatransition :: Transition;
+
+		dfatransition.fromState = state;
+		dfatransition.toState = epsclosurelist;
+		dfatransition.transChar = head(inputs);
+
+		dfa.transTable = dfatransition :: dfa.transTable;
+
+		return createDFATransitions(tail(inputs), dfa, state);
+			
+}
+
+function removeCurrentState
+[[Integer]] ::= state::[Integer] states::[[Integer]]
+{
+	return if null(states)
+		then [[]];
+
+		else
+			if head(states) !=  state
+				then head(states) :: removeCurrentState(state, tail(states));
+			else
+				removeCurrentState(state, tail(states));
+}
+
 {--
 
 function finalStateConnectionForConcat
@@ -160,7 +304,6 @@ function finalStateConnectionForConcat
 			transition.transChar = transchar;
 			transition :: finalStateConnectionForConcat(tail(finalstates), tostate, transchar);		
 }
-
 
 function setFinalStatesForConcat
 [Integer] ::= finalstates::[Integer] offset::Integer
