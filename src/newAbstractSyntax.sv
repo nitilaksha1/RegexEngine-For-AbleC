@@ -1,9 +1,8 @@
 -- Need a way to represent epsilon character in Silver
 -- have decided to use '^' for time being
 
--- NFA is a type with three arributes which are stateCount, list of finalStates and transTable
+-- NFA is a type with three arributes which are stateCount, finalState and transTable
 nonterminal NFA with stateCount, finalStates, transTable;
-nonterminal DFA with startState, stateList, finalStates, transTable;
 
 -- Transition is a type with three types which are fromState, toState and transChar
 nonterminal Transition with fromState, toState, transChar;
@@ -48,6 +47,9 @@ e::NFA ::= l::NFA r::NFA
 	transition = createTrans(l.stateCount + r.stateCount, e.stateCount - 1, '^');
 	e.transTable = transition :: e.transTable;
 
+	--Set the final state
+	e.finalStates = e.stateCount - 1;
+	
 	-- May be needed in future in case of design change
 	-- e.finalStates = (e.stateCount - 1) :: e.finalStates;
 }
@@ -79,6 +81,9 @@ e::NFA ::= param::NFA
 	transition = createTrans(0, param.stateCount + 1, '^');
 	e.transTable = transition :: e.transTable
 
+	--Setting the final state
+	e.finalStates = e.stateCount + 1;
+	
 	-- May be needed in future in case of design change
 	-- e.finalStates = (e.stateCount + 1) :: e.finalStates;
 }
@@ -101,6 +106,9 @@ e :: NFA ::= l :: NFA r :: NFA
 	-- Add all the transitions of the right NFA to the resultant NFA
 	e.transTable = e.transTable ++ addToTransTable(r.transTable, l.stateCount);
 
+	--Setting the final state
+	e.finalStates = (l.stateCount + r.stateCount - 1);
+	
 	-- May be needed in future in case of design change
 	-- e.finalStates = (l.stateCount + r.stateCount - 1) :: e.finalStates;
 }
@@ -124,6 +132,8 @@ e :: NFA ::=
 	transition = createTrans(0, 1, '^');
 	e.transTable = transition :: e.TransTable
 }
+
+--Helper functions for NFA
 
 function addToTransTable
 [Transition] ::= transitions::[Transition] offset::Integer
@@ -180,33 +190,6 @@ function epsClosureMultipleStates
 		removeDups(returnList, []);
 }
 
-function removeDups 
-[Integer] ::= listWithDups :: [Integer] listWithOutDups :: [Integer]
-{
-	if null(listWithDups)
-	then 
-		return listWithOutDups;
-	else 
-		local attribute element :: Integer = head(listWithDups);
-		if(isStatePresent(element, listWithOutDups))
-		then
-			return removeDups(tail(listWithDups), listWithOutDups); 
-		else
-			return removeDups(tail(listWithDups), element :: listWithOutDups);
-}
-
-function isStatePresent
-Boolean ::= state::Integer statelist::[Integer]
-{
-	return if null(statelist)
-		then false;
-		else
-			if state == head(statelist) 
-			then true;
-			else
-				isStatePresent(state, tail(statelist));
-}
-
 function epsClosureOneState
 [Integer] ::= transitions :: [Transition] inputState :: Integer inputChar :: RegexChar_t returnList :: [Integer] staticTransitions :: [Transition]
 {
@@ -235,6 +218,8 @@ function move
 			removeDups((walkTransitions (nfa.transitions, head(state), input) ++ move (tail(state), input, nfa)), []);
 }
 
+--Some more helper functions
+
 function walkTransitions
 [Integer] ::= transitions::[Transition] state::Integer input::RegexChar_t
 {
@@ -248,6 +233,34 @@ function walkTransitions
 			else
 				walkTransitions(tail(transitions), state, input);
 }
+
+function removeDups 
+[Integer] ::= listWithDups :: [Integer] listWithOutDups :: [Integer]
+{
+	if null(listWithDups)
+	then 
+		return listWithOutDups;
+	else 
+		local attribute element :: Integer = head(listWithDups);
+		if(isStatePresent(element, listWithOutDups))
+		then
+			return removeDups(tail(listWithDups), listWithOutDups); 
+		else
+			return removeDups(tail(listWithDups), element :: listWithOutDups);
+}
+
+function isStatePresent
+Boolean ::= state::Integer statelist::[Integer]
+{
+	return if null(statelist)
+		then false;
+		else
+			if state == head(statelist) 
+			then true;
+			else
+				isStatePresent(state, tail(statelist));
+}
+
 
 -- SUBSET CONSTRUCTION ALGORITHM IMPLEMENTATION
 
