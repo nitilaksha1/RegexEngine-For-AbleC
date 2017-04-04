@@ -149,25 +149,7 @@ Transition ::= fromState :: Integer toState :: Integer transChar :: RegexChar_t
 
 -- Code from here till the end of the page has been commented
 
-function epsClosure1
-[Integer] ::= nfa::NFA t::[Integer] mainlist::[Integer]
-{
-	return if null(t)
-		then []
-		else
-			epslist = transitionsFromState(head(t), nfa.transTable, '^', mainlist);
-			mainlist = mainlist ++ epslist;
-			epslist = epslist ++ epsClosure(nfa, tail(t), mainlist);
-}
-function epsClosure
-[Integer] ::= nfa::NFA t::[Integer] mainlist::[Integer]
-{
-	return if null(t)
-		then []
-		else
-			local attribute epslist :: [Integer];
-			epslist = epslist ++ transitionsFromState(head(t), nfa.transTable, '^',  epslist) ++ epsClosure(nfa, tail(t));
-}
+-- Code for NFA to DFA conversion begins here
 
 function transitionsFromState 
 [Integer] ::= t::Integer transitions::[Transition] transchar::RegexChar_t mainlist::[Integer]
