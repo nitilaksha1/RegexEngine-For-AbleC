@@ -3,13 +3,10 @@
 
 -- NFA is a type with three arributes which are stateCount, list of finalStates and transTable
 nonterminal NFA with stateCount, finalStates, transTable;
-nonterminal DFA with startState, stateList, finalStates, transTable;
 
 -- Transition is a type with three types which are fromState, toState and transChar
 nonterminal Transition with fromState, toState, transChar;
 
-synthesized attribute stateList :: [[Integer]];
-synthesized attribute startState :: Integer;
 synthesized attribute stateCount :: Integer;
 synthesized attribute finalStates :: Integer;
 synthesized attribute transTable :: [Transition];
@@ -132,8 +129,8 @@ function addToTransTable
 			then []
 			else
 				local attribute transition :: Transition = head(transitions);
-				transition.fromstate = transition.fromstate + offset;
-				transition.tostate = transtion. tostate + offset;
+				transition.fromState = transition.fromState + offset;
+				transition.toState = transtion. toState + offset;
 				transition :: addToTransTable(tail(transitions), offset);	
 }
 
@@ -149,9 +146,7 @@ Transition ::= fromState :: Integer toState :: Integer transChar :: RegexChar_t
 
 -- CODE FOR NFA to DFA CONVERSION:
 
--- CLOSURE FUNCTION IMPLEMENTATION
-
--- The following functions implement epsilon-closure procedure:
+-- The following four functions implement epsilon-closure procedure:
 
 -- Input to the main function: 
 -- a) Transition Table
@@ -162,12 +157,6 @@ Transition ::= fromState :: Integer toState :: Integer transChar :: RegexChar_t
 -- Output:
 -- a) A list of states that can be reached from the set of initial states by epsilon transitions
 
-function epsClosure
-[Integer] ::= nfa :: NFA inputStates :: [Integer]
-{
-	return epsClosureMultipleStates(nfa.transTable, inputStates, '^', nfa.transTable);	
-}
-
 function epsClosureMultipleStates
 [Integer] ::= transitions :: [Transition] inputStates :: [Integer] inputChar :: RegexChar_t returnList :: [Integer]
 {
@@ -177,7 +166,7 @@ function epsClosureMultipleStates
 		local attribute inputState :: Integer = head(inputStates);
 		returnList = epsClosureOneState(transitions, inputState, '^', transitions);
 		returnList = returnList ++ epsClosureMultipleStates(transitions, tail(inputStates), '^', []);
-		removeDups(returnList, []);
+		removeDups(returnList);
 }
 
 function removeDups 
@@ -198,13 +187,13 @@ function removeDups
 function isStatePresent
 Boolean ::= state::Integer statelist::[Integer]
 {
-	return if null(statelist)
-		then false;
-		else
-			if state == head(statelist) 
-			then true;
-			else
-				isStatePresent(state, tail(statelist));
+        return if null(statelist)
+                then false;
+                else
+                        if state == head(statelist)
+                        then true;
+                        else
+                                isStatePresent(state, tail(statelist));
 }
 
 function epsClosureOneState
@@ -224,112 +213,166 @@ function epsClosureOneState
 			return epsClosureOneState(tail(transitions), inputState, '^', returnList, staticTransitions);
 }
 
--- MOVE FUNCTION
-
-function move
-[Integer] ::= state :: [Integer] input :: RegexChar_t nfa :: NFA
-{
-	return if null(state)
-		then [];
-		else
-			removeDups((walkTransitions (nfa.transitions, head(state), input) ++ move (tail(state), input, nfa)), []);
-}
-
-function walkTransitions
-[Integer] ::= transitions::[Transition] state::Integer input::RegexChar_t
-{
-	return if null(transitions)
-		then [];
-		else
-			local transition::Transition = head(transitions);
-
-			if transition.transChar == input
-				then transition.toState :: walkTransitions(tail(transitions), state, input);
-			else
-				walkTransitions(tail(transitions), state, input);
-}
-
 -- SUBSET CONSTRUCTION ALGORITHM IMPLEMENTATION
 
--- DFA is a type with arributes which are startState, list of finalStates, transTable, states
+-- DFA is a type with arributes which are dfaStartState, list of dfaFinalStates, dfaTransTable, dfaStates, mapper, unmarkedStateList
 
-nonterminal DFA with startState, finalStates, transTable, states;
+nonterminal DFA with dfaStartState, dfaFinalStates, dfaTransTable, dfaStates, mapper, unmarkedStateList;
 
-synthesized attribute startState :: Integer;
-synthesized attribute states :: [[Integer]];
-synthesized attribute finalStates :: [[Integer]];
-synthesized attribute transTable :: [DFATransition];
+synthesized attribute dfaStartState :: Integer;
+synthesized attribute dfaStates :: [Integer];
+synthesized attribute dfaFinalStates :: [Integer];
+synthesized attribute mapper::[Pair<Integer [Integer]>];
+synthesized attribute dfaTransTable :: [Transition];
+synthesized attribute unmarkedStateList :: [Integer];
 
-nonterminal DFATransition with DFAFromState, DFAToState, transChar;
-
-attribute DFAFromState :: [Integer];
-attribute DFAToState :: [Integer];
-
-function subsetConstruction
-DFA ::= nfa::NFA
+function createDFA
+DFA ::= nfa :: NFA
 {
+
 	local attribute dfa :: DFA;
-	local attribute states :: [[Integer]];
 
-	dfa.startState = epsClosure(nfa, [nfa.startState]);
-	states = dfa.startState :: states;
+	local attribute startState :: [Integer];
+	startState = epsClosureOneState(nfa.transTable, 0, '^', [], nfa.transTable);
 
-	dfa = createDFA (nfa, dfa, states);
-	-- Add code to generate unique IDs 
+	-- generate a unique number for the set of startStates
+	local attribute uniqueState :: Integer = genInt();
+
+	-- Need a mapper between uniqueState and a set of states
+	dfa.mapper = [ pair(uniqueState, startState) ];
+
+	-- Add the unique DFA state to the list of DFA states
+	dfa.dfaStates = uniqueState :: dfa.dfaStates;
+
+	- Add the unique DFA state to the list of unmarked states
+	dfa.unmarkedStateList = uniqueState :: dfa.unmarkedStateList;
+
+	-- Set this as the start state of the DFA
+	dfa.dfaStartState = uniqueState;
+
+	dfa = processUnmarkedList(nfa, dfa);
 	return dfa;
 }
 
-function createDFA
-DFA ::= nfa::NFA dfa::DFA states::[[Integer]]
+function processUnmarkedList
+DFA ::= nfa :: NFA dfa :: DFA
 {
-	if null(states)
-		then return dfa;
-	else
-		local attribute state :: [Integer] = head(states);
-		
-		if isStatePresent(nfa.finalStates, state)
-			dfa.finalStates = state :: dfa.finalStates;
-
-		dfa = createDFATransitions (state, nfa.inputs, dfa, nfa); 		
-
-		dfa.states = removeCurrentState (state, states);
-
-		return createDFA(nfa, dfa, dfa.states); 
-}
-
-function createDFATransitions 
-DFA ::=	state :: [Integer] inputs :: [RegexChar_t] dfa::DFA nfa :: NFA
-{
-	if null(inputs)
+	if null(dfa.unmarkedStateList)
+	then 
 		return dfa;
 	else
-		local attribute epsClosureList :: [Integer];
-		
-		epsClosureList = epsClosure (nfa, move(state, head(inputs), nfa));  
+		local attribute markedState :: Integer = head(dfa.unmarkedStateList);
 
-		if presentInDFAStates(epsClosureList, dfa.states)
-			then dfa.states = epsclosurelist :: dfa.states;
+		-- get the list of states corresponding to markedState from mapper
+		local attribute markedStateList :: [Integer];
+		markedStateList = lookup(markedState, dfa.mapper);
 
-		local dfaTransition :: DFATransition;
+		-- function to check if markedStateList contains a final state
+		if finalStateCheck(nfa.finalStates, markedStateList)
+		then
+			dfa.dfaFinalStates = markedState :: dfa.dfaFinalStates;
 
-		dfaTransition.DFAFromState = state;
-		dfaTransition.DFAToState = epsclosurelist;
-		dfaTransition.transChar = head(inputs);
-
-		dfa.transTable = dfaTransition :: dfa.transTable;
-
-		return createDFATransitions(tail(inputs), dfa, state, nfa);		
+		dfa = processInputSymbol(nfa, dfa, markedState, nfa.inputSymbolsList);
+		dfa.unmarkedStateList = tail(dfa.unmarkedStateList);
+		return processUnmarkedList(nfa, dfa);
 }
 
-function removeCurrentState
-[[Integer]] ::= state::[Integer] states::[[Integer]]
+function processInputSymbol
+DFA ::= nfa :: NFA dfa :: DFA markedState :: Integer inputSymbolsList :: [RegexChar_t]
 {
-	return if null(states)
-		then [[]];
+	if null(inputSymbolsList)
+	then
+		return dfa;
+	else
+		local attribute transChar :: RegexChar_t = head(inputSymbolsList);
+		local attribute markedStateList :: [Integer];
+		markedStateList = lookup(markedState, dfa.mapper);
 
-		else
-			if head(states) !=  state
-				then head(states) :: removeCurrentState(state, tail(states));
-			else
-				removeCurrentState(state, tail(states));
+		local attribute moveStates :: [Integer];
+		moveStates = move(markedStateList, transChar);
+
+		listOfStatesU = epsClosureMultipleStates(nfa.transTable, moveStates, '^', []);
+
+		local attribute checkState :: Integer;
+		checkState = tailLookup(listOfStatesU, dfa.mapper);
+		local attribute uniqueState :: Integer;
+		uniqueState = checkState;
+
+		if(checkState == -1)
+		then
+			uniqueState = genInt();  
+			dfa.mapper = pair(uniqueState, listOfStatesU) :: dfa.mapper;
+			dfa.dfaStates = uniqueState :: dfa.dfaStates;
+			dfa.unmarkedStateList = uniqueState :: dfa.unmarkedStateList;
+
+		local attribute transition :: Transition;
+		transition = createTrans(markedState, uniqueState, transChar);
+		dfa.transTable = transition :: dfa.transTable;
+		return processInputSymbol(nfa, dfa, markedState, tail(inputSymbolsList));
+} 
+
+function tailLookup
+[Integer] ::= listOfStatesU :: Integer mapper :: [ Pair<Integer [Integer]> ]
+{
+  return if null(mapper)
+         	then -1;
+         else
+			 if listOfStatesU == head(mapper).snd
+		         then head(mapper).fst
+			 else lookup(listOfStatesU, tail(mapper));
 }
+
+function finalStateCheck
+boolean ::= nfaFinalState :: Integer markedStateList :: [Integer]
+{
+	if null(markedStateList)
+	then
+		return false;
+	else
+		if(nfaFinalState == head(markedStateList))
+		then
+			return true;
+		else
+			return finalStateCheck(nfaFinalState, tail(markedStateList));
+}
+
+function lookup
+[Integer] ::= uniqueState :: Integer mapper :: [ Pair<Integer [Integer]> ]
+{
+  return if null(mapper)
+         	then []
+         else
+			 if uniqueState == head(mapper).fst
+		         then head(mapper).snd
+			 else lookup(uniqueState, tail(mapper));
+}
+
+
+-- Code from here till the end of the page has been commented
+
+{--
+
+function finalStateConnectionForConcat
+[Transition] ::= finalStates::[Integer] toState::Integer transChar::RegexChar_t 
+{
+	return if null(finalStates)
+		then []
+		else
+			local attribute transition :: Transition;
+			transition.fromState = head(finalstates);
+			transition.toState = tostate;
+			transition.transChar = transchar;
+			transition :: finalStateConnectionForConcat(tail(finalstates), tostate, transchar);		
+}
+
+
+function setFinalStatesForConcat
+[Integer] ::= finalstates::[Integer] offset::Integer
+{
+	return if null(finalstates)
+		then []
+		else
+			(head(finalstates) + offset) :: setFinalStatesForConcat(tail(finalstates), offset);
+}
+
+--}
