@@ -24,28 +24,7 @@ e::NFA ::= l::NFA r::NFA
 	-- Resultant state count will be the sum of the state counts of the left NFA and the right NFA
 	e.stateCount = l.stateCount + r.stateCount + 2;
 
-	-- Create a new epsilon transition
-	local attribute transition :: Transition;
-	transition = createTrans(0, 1, '^');
-	e.transTable = transition :: e.transTable;
-
-	-- Add all the transitions of the left NFA to the resultant NFA
-	e.transTable = e.transTable ++ addToTransTable(l.transTable, 1);
-
-	-- Connect the intermediate final state of left NFA to resultant final state
-	transition = createTrans(l.stateCount, e.stateCount - 1, '^');
-	e.transTable = transition :: e.transTable;
-
-	-- Connect the start state of the resultant NFA to the start state of right NFA
-	transition = createTrans(0, l.stateCount + 1, '^');
-	e.transTable = transition :: e.transTable;
-
-	-- Add all the transitions of the right NFA to the resultant NFA
-	e.transTable = e.transTable ++ addToTransTable(r.transTable, 1 + l.stateCount);
-
-	-- Connect the final state of the right NFA to the resultant NFA
-	transition = createTrans(l.stateCount + r.stateCount, e.stateCount - 1, '^');
-	e.transTable = transition :: e.transTable;
+	e.transTable = (createTrans(0, 1, '^') :: createTrans(l.stateCount, e.stateCount - 1, '^') :: createTrans(0, l.stateCount + 1, '^') :: createTrans(l.stateCount + r.stateCount, e.stateCount - 1, '^') :: e.transTable) ++ addToTransTable(r.transTable, l.stateCount + 1) ++ addToTransTable(l.transTable, 1); 
 
 	--Set the final state
 	e.finalStates = e.stateCount - 1;
@@ -61,25 +40,7 @@ e::NFA ::= param::NFA
 	-- Two extra states will get added
 	e.stateCount = param.stateCount + 2;
 
-	-- Add an epsilon transition to the start of the child NFA
-	local attribute transition::Transition;
-	transition = createTrans(0, 1, '^');
-	e.transTable = transition :: e.transTable;
-
-	-- Add all the transitions of the child NFA to the resultant NFA
-	e.transTable = e.transTable ++ addToTransTable(param.transTable, 1);
-
-	-- Add an epsilon transition to the end of the child NFA
-	transition = createTrans(param.stateCount, param.stateCount + 1, '^');
-	e.transTable = transition :: e.transTable;
-
-	-- An an epsilon transition from the end of the child NFA to state 1
-	transition = createTrans(param.stateCount, 1, '^');
-	e.transTable = transition :: e.transTable;
-
-	-- Add an epsilon transition from state 0 to the end state
-	transition = createTrans(0, param.stateCount + 1, '^');
-	e.transTable = transition :: e.transTable
+	e.transTable = (createTrans(0, 1, '^') :: createTrans(param.stateCount, param.stateCount + 1, '^') :: createTrans(param.stateCount, 1, '^') :: createTrans(0, param.stateCount + 1, '^') :: e.transTable) ++ addToTransTable(param.transTable, 1);
 
 	--Setting the final state
 	e.finalStates = e.stateCount + 1;
@@ -95,17 +56,8 @@ e :: NFA ::= l :: NFA r :: NFA
 	-- The number of states in the resulting NFA will be the sum of vertices in the concatenated NFAs
 	e.stateCount = l.stateCount + r.stateCount;
 	
-	-- Add all the transitions of the left NFA to the resultant NFA
-	e.transTable = e.transTable ++ addToTransTable(l.transTable, 0);
-
-	-- Add an epsilon transition from final state of left NFA to the start state of the right NFA
-	local attribute transition :: Transition;
-	transition = createTrans(l.stateCount - 1, l.stateCount, '^');
-	e.transTable = transition :: e.TransTable
-
-	-- Add all the transitions of the right NFA to the resultant NFA
-	e.transTable = e.transTable ++ addToTransTable(r.transTable, l.stateCount);
-
+	e.transTable = (createTrans(l.stateCount - 1, l.stateCount, '^') :: e.transTable) ++ addToTransTable(l.transTable, 0) ++ addToTransTable(r.transTable, l.stateCount);
+	
 	--Setting the final state
 	e.finalStates = (l.stateCount + r.stateCount - 1);
 	
@@ -121,6 +73,7 @@ e :: NFA ::= param :: RegexChar_t
 	local attribute transition :: Transition;
 	transition = createTrans(0, 1, param);
 	e.transTable = transition :: e.TransTable
+	e.finalStates = 1;
 }
 
 -- Abstract production for epsilon transition
