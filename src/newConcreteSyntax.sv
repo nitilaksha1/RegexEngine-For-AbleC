@@ -10,21 +10,23 @@ terminal RegexLParen_t   '(' lexer classes { REGEX_OPER };
 terminal RegexRParen_t   ')' lexer classes { REGEX_OPER };
 terminal RegexChar_t     /./ lexer classes { REGEX_ESC }, submits to { cnc:Divide_t };
 
-nonterminal Regex_RE with nfa;     
-nonterminal Regex_C with nfa;      
-nonterminal Regex_B with nfa;    
-nonterminal Regex_Sim with nfa;
-nonterminal Regex_CHAR with nfa;
+nonterminal Root_c with pp, root;
 
-synthesized attribute nfa :: NFA
+nonterminal Regex_RE with pp, ast_REGEX;     
+nonterminal Regex_C with pp, ast_REGEX;      
+nonterminal Regex_B with pp, ast_REGEX;    
+nonterminal Regex_Sim with pp, ast_REGEX;
+nonterminal Regex_CHAR with pp, ast_REGEX;
+
+synthesized attribute ast_REGEX :: REGEX ;
+synthesized attribute root :: ROOT ;
 
 concrete production regex_c
 -- Some changes might be needed here
 e::cnc:PrimaryExpr_c ::= d1::RegexBegin_t  re::Regex_RE  d2::RegexEnd_t
 layout {}
 {
-  --e.ast = regexLiteralExpr("\"" ++ re.regString ++ "\"", location=e.location);
-	e.dfa = createDFA(re.nfa);
+	e.root = createDFA(re.ast_REGEX);
 }
 
 abstract production literalRegex
@@ -53,68 +55,68 @@ concrete production REtoC
 re::Regex_RE ::= c::Regex_C
 layout {}
 {
-  re.nfa = c.nfa;
+  re.ast_REGEX = c.ast_REGEX;
 }
 
 concrete production REtoRE_bar_C
 re::Regex_RE ::= first::Regex_RE sep::Choice_t rest::Regex_C
 layout {}
 {
-  re.nfa = AlternationOp(first.nfa, rest.nfa);
+  re.ast_REGEX = AlternationOp(first.ast_REGEX, rest.ast_REGEX);
 }
 
 concrete production CtoB
 c::Regex_C ::= b::Regex_B
 layout {}
 {
-  c.nfa = b.nfa;
+  c.ast_REGEX = b.ast_REGEX;
 }
 
 concrete production CconcatenateB
 c::Regex_C ::= first::Regex_C rest::Regex_B
 layout {}
 {
-  c.nfa = ConcatOp(first.nfa, rest.nfa);
+  c.ast_REGEX = ConcatOp(first.ast_REGEX, rest.ast_REGEX);
 }
 
 concrete production BtoSim
 b::Regex_B ::= sim::Regex_Sim
 layout {}
 {
-  b.nfa = sim.nfa;
+  b.ast_REGEX = sim.ast_REGEX;
 }
 
 concrete production BtoB_star
 b::Regex_B ::= first::Regex_B sep::Kleene_t
 layout {}
 {
-  b.nfa = KleeneOp(first.nfa);
+  b.ast_REGEX = KleeneOp(first.ast_REGEX);
 }
 
 concrete production BtoLP_RE_RP
 b::Regex_B ::= lp::RegexLParen_t re::Regex_RE rp::RegexRParen_t
 layout {}
 {
-  b.nfa = re.nfa;
+  b.ast_REGEX = re.ast_REGEX;
 }
 
 abstract production SimtoCHAR
 sim::Regex_Sim ::= char::Regex_CHAR
 layout {}
 {
-  sim.nfa = char.nfa;
+  sim.ast_REGEX = char.ast_REGEX;
 }
 
 concrete production Simtoeps
 sim::Regex_Sim ::=
 layout {}
 {
-  sim.nfa = NewEpsilonTrans();
+  sim.ast_REGEX = NewEpsilonTrans();
 }
 
 concrete production CHARtochar
 top::Regex_CHAR ::= char::RegexChar_t
 layout {}
 {
-  top.nfa = NewNfa(char.lexeme);
+  top.ast_REGEX = NewNfa(char.lexeme);
 }
