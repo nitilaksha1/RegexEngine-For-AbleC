@@ -121,7 +121,7 @@ sim::Regex_Sim ::=
 layout {}
 {
   sim.ast_REGEX = NewEpsilonTrans();
-  sim.pp = populatePP(sim.ast_REGEX.nfa.transTable);
+  sim.pp = sim.ast_REGEX.pp;
 }
 
 concrete production CHARtochar
@@ -129,5 +129,5 @@ top::Regex_CHAR ::= char::RegexChar_t
 layout {}
 {
   top.ast_REGEX = NewNfa(char.lexeme);
-  top.pp = populatePP(top.ast_REGEX.nfa.transTable);
+  top.pp = top.ast_REGEX.pp;
 }

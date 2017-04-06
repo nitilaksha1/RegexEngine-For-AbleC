@@ -12,6 +12,7 @@ nonterminal NFA with stateCount, finalStates, transTable;
 -- Transition is a type with three types which are fromState, toState and transChar
 nonterminal Transition with fromState, toState, transChar;
 
+synthesized attribute nfa :: NFA;
 synthesized attribute stateList :: [[Integer]];
 synthesized attribute startState :: Integer;
 synthesized attribute stateCount :: Integer;
@@ -29,6 +30,7 @@ abstract production AlternationOp
 e::REGEX ::= l::REGEX r::REGEX
 {
 	e.nfa = AlternationOpFun(l.nfa, r.nfa); 
+	e.pp = populatePP(e.nfa.transTable);
 }
 
 -- Function handle Alternate (|) operator
@@ -56,6 +58,7 @@ abstract production KleeneOp
 e::REGEX ::= param::REGEX
 {
 	e.nfa = KleeneOpFun(param.nfa);
+	e.pp = populatePP(e.nfa.transTable);
 }
 
 -- Function to handle Kleene (*) operator
@@ -83,6 +86,7 @@ abstract production ConcatOp
 e :: REGEX ::= l :: REGEX r :: REGEX
 {
 	e.nfa = ConcatOpFun(l.nfa, r.nfa);
+	e.pp = populatePP(e.nfa.transTable);
 }
 
 -- Function to concatenate two NFAs and produce the resultant NFA
@@ -110,6 +114,7 @@ abstract production NewNfa
 e :: REGEX ::= param :: RegexChar_t
 {
 	e.nfa = NewNfaFun(param);
+	e.pp = populatePP(e.nfa.transTable);
 }
 
 -- Function to create a new NFA for a single unit
@@ -132,6 +137,7 @@ abstract production NewEpsilonTrans
 e :: NFA ::=
 {
 	e.nfa = NewEpsilonTransFun(); 
+	e.pp = populatePP(e.nfa.transTable);
 }
 
 -- Function for epsilon transition
@@ -170,6 +176,17 @@ Transition ::= fromState :: Integer toState :: Integer transChar :: RegexChar_t
 	transition.toState = toState;
 	transition.transChar = transChar;
 	return transition; 
+}
+
+function populatePP
+String ::= transitions::[Transition]
+{
+	return if null(transitions)
+		then ""
+		else
+			local attribute transition::Transition = head(transitions);
+			"(" ++ toString(fromState) ++ "," ++ toString(toState) ++ "," ++ toString(transChar) ++ ")" ++ populatePP(tail(transitions));
+
 }
 
 -- CODE FOR NFA to DFA CONVERSION:
@@ -293,10 +310,11 @@ nonterminal DFATransition with DFAFromState, DFAToState, transChar;
 attribute DFAFromState :: [Integer];
 attribute DFAToState :: [Integer];
 
-function subsetConstruction
-ROOT ::= regex :: REGEX
+abstract production subsetConstruction
+r::ROOT ::= regex :: REGEX
 {
-	return subsetConstructionFun(regex.nfa);
+	r.dfa = subsetConstructionFun(regex.nfa);
+	r.pp = populatePP(regex.nfa.transTable);
 }
 
 function subsetConstructionFun
