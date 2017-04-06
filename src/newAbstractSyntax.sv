@@ -24,6 +24,7 @@ attribute toState :: Integer;
 attribute transChar :: RegexChar_t;
 
 synthesized attribute pp :: String;
+synthesized attribute dfa:: DFA;
 
 -- Abstract production to handle Alternate (|) operator
 abstract production AlternationOp
