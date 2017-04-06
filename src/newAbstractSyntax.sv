@@ -186,7 +186,7 @@ String ::= transitions::[Transition]
 		then ""
 		else
 			local attribute transition::Transition = head(transitions);
-			"(" ++ toString(fromState) ++ "," ++ toString(toState) ++ "," ++ transChar.lexeme ++ ")" ++ populatePP(tail(transitions));
+			"(" ++ toString(transition.fromState) ++ "," ++ toString(transition.toState) ++ "," ++ transChar.lexeme ++ ")" ++ populatePP(tail(transitions));
 
 }
 
