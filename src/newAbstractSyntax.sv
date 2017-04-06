@@ -1,6 +1,11 @@
 -- Need a way to represent epsilon character in Silver
 -- have decided to use '^' for time being
 
+-- REGEX is a type with NFA and pp
+nonterminal REGEX with pp, nfa;
+
+nonterminal ROOT with pp, dfa;
+
 -- NFA is a type with three arributes which are stateCount, finalState and transTable
 nonterminal NFA with stateCount, finalStates, transTable;
 
@@ -17,10 +22,21 @@ attribute fromState :: Integer;
 attribute toState :: Integer;
 attribute transChar :: RegexChar_t;
 
+synthesized attribute pp :: String;
+
 -- Abstract production to handle Alternate (|) operator
 abstract production AlternationOp
-e::NFA ::= l::NFA r::NFA
+e::REGEX ::= l::REGEX r::REGEX
 {
+	e.nfa = AlternationOpFun(l.nfa, r.nfa); 
+}
+
+-- Function handle Alternate (|) operator
+function AlternationOpFun
+NFA ::= l::NFA r::NFA
+{
+	local attribute e :: NFA;
+
 	-- Resultant state count will be the sum of the state counts of the left NFA and the right NFA
 	e.stateCount = l.stateCount + r.stateCount + 2;
 
@@ -31,12 +47,23 @@ e::NFA ::= l::NFA r::NFA
 	
 	-- May be needed in future in case of design change
 	-- e.finalStates = (e.stateCount - 1) :: e.finalStates;
+
+	return e;
 }
 
 -- Abstract production to handle Kleene (*) operator
 abstract production KleeneOp
-e::NFA ::= param::NFA
+e::REGEX ::= param::REGEX
 {
+	e.nfa = KleeneOpFun(param.nfa);
+}
+
+-- Function to handle Kleene (*) operator
+function KleeneOpFun
+NFA ::= param::NFA
+{
+	local attribute e :: NFA;
+
 	-- Two extra states will get added
 	e.stateCount = param.stateCount + 2;
 
@@ -47,12 +74,23 @@ e::NFA ::= param::NFA
 	
 	-- May be needed in future in case of design change
 	-- e.finalStates = (e.stateCount + 1) :: e.finalStates;
+
+	return e;
 }
 
 -- Abstract production to concatenate two NFAs and produce the resultant NFA
 abstract production ConcatOp
-e :: NFA ::= l :: NFA r :: NFA
+e :: REGEX ::= l :: REGEX r :: REGEX
 {
+	e.nfa = ConcatOpFun(l.nfa, r.nfa);
+}
+
+-- Function to concatenate two NFAs and produce the resultant NFA
+function ConcatOpFun
+NFA ::= l :: NFA r :: NFA
+{
+	local attribute e :: NFA;
+
 	-- The number of states in the resulting NFA will be the sum of vertices in the concatenated NFAs
 	e.stateCount = l.stateCount + r.stateCount;
 	
@@ -63,27 +101,51 @@ e :: NFA ::= l :: NFA r :: NFA
 	
 	-- May be needed in future in case of design change
 	-- e.finalStates = (l.stateCount + r.stateCount - 1) :: e.finalStates;
+
+	return e;
 }
 
 -- Abstract production to create a new NFA for a single unit
 abstract production NewNfa
-e :: NFA ::= param :: RegexChar_t
+e :: REGEX ::= param :: RegexChar_t
 {
+	e.nfa = NewNfaFun(param);
+}
+
+-- Function to create a new NFA for a single unit
+function NewNfaFun
+NFA ::= param :: RegexChar_t
+{
+	local attribute e :: NFA;
+
 	e.stateCount = 2;
 	local attribute transition :: Transition;
 	transition = createTrans(0, 1, param);
 	e.transTable = transition :: e.TransTable
 	e.finalStates = 1;
+
+	return e;
 }
 
 -- Abstract production for epsilon transition
 abstract production NewEpsilonTrans
 e :: NFA ::=
 {
+	e.nfa = NewEpsilonTransFun(); 
+}
+
+-- Function for epsilon transition
+production NewEpsilonTransFun
+e :: NFA ::=
+{
+	local attribute e :: NFA;
+
 	e.stateCount = 2;
 	local attribute transition :: Transition;
 	transition = createTrans(0, 1, '^');
-	e.transTable = transition :: e.TransTable
+	e.transTable = transition :: e.TransTable;
+
+	return e;
 }
 
 --Helper functions for NFA
@@ -232,6 +294,12 @@ attribute DFAFromState :: [Integer];
 attribute DFAToState :: [Integer];
 
 function subsetConstruction
+ROOT ::= regex :: REGEX
+{
+	return subsetConstructionFun(regex.nfa);
+}
+
+function subsetConstructionFun
 DFA ::= nfa::NFA
 {
 	local attribute dfa :: DFA;
