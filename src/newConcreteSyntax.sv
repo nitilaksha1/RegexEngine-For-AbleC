@@ -12,11 +12,11 @@ terminal RegexChar_t     /./ lexer classes { REGEX_ESC }, submits to { cnc:Divid
 
 nonterminal Root_c with pp, root;
 
-nonterminal Regex_RE with pp, ast_REGEX;     
-nonterminal Regex_C with pp, ast_REGEX;      
-nonterminal Regex_B with pp, ast_REGEX;    
-nonterminal Regex_Sim with pp, ast_REGEX;
-nonterminal Regex_CHAR with pp, ast_REGEX;
+nonterminal Regex_RE with ast_REGEX;     
+nonterminal Regex_C with ast_REGEX;      
+nonterminal Regex_B with ast_REGEX;    
+nonterminal Regex_Sim with ast_REGEX;
+nonterminal Regex_CHAR with ast_REGEX;
 
 synthesized attribute ast_REGEX :: REGEX ;
 synthesized attribute root :: ROOT ;
