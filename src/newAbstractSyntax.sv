@@ -7,7 +7,7 @@ nonterminal REGEX with pp, nfa;
 nonterminal ROOT with pp, dfa;
 
 -- NFA is a type with three arributes which are stateCount, finalState and transTable
-nonterminal NFA with stateCount, finalStates, transTable;
+nonterminal NFA with stateCount, finalStates, transTable, dfa;
 
 -- Transition is a type with three types which are fromState, toState and transChar
 nonterminal Transition with fromState, toState, transChar;
@@ -299,12 +299,13 @@ Boolean ::= state::Integer statelist::[Integer]
 
 -- DFA is a type with arributes which are startState, list of finalStates, transTable, states
 
-nonterminal DFA with startState, finalStates, transTable, states;
+nonterminal DFA with startState, finalStates, transTable, states, c;
 
 synthesized attribute startState :: Integer;
 synthesized attribute states :: [[Integer]];
 synthesized attribute finalStates :: [[Integer]];
 synthesized attribute transTable :: [DFATransition];
+synthesized attribute c :: String;
 
 nonterminal DFATransition with DFAFromState, DFAToState, transChar;
 
