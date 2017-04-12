@@ -1,3 +1,11 @@
+grammar edu:umn:cs:melt:exts:ableC:regex:src:concretesyntax;
+
+imports edu:umn:cs:melt:ableC:concretesyntax as cnc;
+imports silver:langutil only ast;
+imports edu:umn:cs:melt:ableC:abstractsyntax;
+
+imports edu:umn:cs:melt:exts:ableC:regex:src:abstractsyntax;
+
 marking terminal RegexBegin_t '/';
 terminal RegexEnd_t '/';
 
@@ -8,9 +16,12 @@ terminal Kleene_t        '*' lexer classes { REGEX_OPER };
 terminal Choice_t        '|' lexer classes { REGEX_OPER };
 terminal RegexLParen_t   '(' lexer classes { REGEX_OPER };
 terminal RegexRParen_t   ')' lexer classes { REGEX_OPER };
+terminal RegexWildcard_t '.' lexer classes { REGEX_OPER };
 terminal RegexChar_t     /./ lexer classes { REGEX_ESC }, submits to { cnc:Divide_t };
+terminal EscapedChar_t /\\./ submits to { REGEX_ESC };
 
-nonterminal Root_c with pp, root;
+
+-- nonterminal Root_c with pp, root;
 
 nonterminal Regex_RE with ast_REGEX;     
 nonterminal Regex_C with ast_REGEX;      
@@ -19,36 +30,17 @@ nonterminal Regex_Sim with ast_REGEX;
 nonterminal Regex_CHAR with ast_REGEX;
 
 synthesized attribute ast_REGEX :: REGEX ;
-synthesized attribute root :: ROOT ;
+-- synthesized attribute root :: ROOT ;
 
 concrete production regex_c
 -- Some changes might be needed here
 e::cnc:PrimaryExpr_c ::= d1::RegexBegin_t  re::Regex_RE  d2::RegexEnd_t
 layout {}
 {
-	e.root = createDFA(re.ast_REGEX);
-}
-
-abstract production literalRegex
-re::Regex_RE ::= s::String
-{
-  re.regString = regexPurifyString(s);
-}
-
-function regexPurifyString
-String ::= s::String
-{
-  local attribute ch :: String;
-  ch = substring(0, 1, s);
-
-  local attribute rest :: String;
-  rest = substring(1, length(s), s);
-
-  return if length(s) == 0 
-	 then ""
-	 else if isAlpha(ch) || isDigit(ch)
-	      then ch ++ regexPurifyString(rest)
-	      else "[\\" ++ ch ++ "]" ++ regexPurifyString(rest);
+	-- e.root = createDFA(re.ast_REGEX);
+  -- Figure out a way to print the NFA, DFA
+  -- e.ast = createDFA(re.ast_REGEX);
+  -- e.ast = printNFA(re.ast_REGEX);
 }
 
 concrete production REtoC
@@ -100,7 +92,7 @@ layout {}
   b.ast_REGEX = re.ast_REGEX;
 }
 
-abstract production SimtoCHAR
+concrete production SimtoCHAR
 sim::Regex_Sim ::= char::Regex_CHAR
 layout {}
 {
@@ -115,7 +107,7 @@ layout {}
 }
 
 concrete production CHARtochar
-top::Regex_CHAR ::= char::RegexChar_t
+top::Regex_CHAR ::= char:: RegexChar_t
 layout {}
 {
   top.ast_REGEX = NewNfa(char.lexeme);

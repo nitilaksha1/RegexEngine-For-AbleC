@@ -1,0 +1,5 @@
+#!/bin/bash
+
+# Quick hack fix, since all of these compositions are named artifact.
+silver -I . -I ../.. -o ableC.jar $@ artifact
+

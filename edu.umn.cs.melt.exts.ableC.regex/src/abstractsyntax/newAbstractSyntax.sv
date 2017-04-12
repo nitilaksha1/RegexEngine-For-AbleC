@@ -1,31 +1,38 @@
+grammar edu:umn:cs:melt:exts:ableC:regex:src:abstractsyntax;
+imports edu:umn:cs:melt:ableC:abstractsyntax;
+imports silver:langutil;
+imports silver:langutil:pp;
+imports edu:umn:cs:melt:exts:ableC:regex:src:concretesyntax;
+
 -- Need a way to represent epsilon character in Silver
 -- have decided to use '^' for time being
 
 -- REGEX is a type with NFA and pp
 nonterminal REGEX with pp, nfa;
 
-nonterminal ROOT with pp, dfa;
+-- nonterminal ROOT with pp, dfa;
 
 -- NFA is a type with three arributes which are stateCount, finalState and transTable
-nonterminal NFA with stateCount, finalStates, transTable, prevstate, dfa;
+--nonterminal NFA with stateCount, finalStates, transTable, prevState, dfa;
+nonterminal NFA with stateCount, finalStates, transTable, prevState;
 
 -- Transition is a type with three types which are fromState, toState and transChar
 nonterminal Transition with fromState, toState, transChar;
 
 synthesized attribute nfa :: NFA;
-inherited attribute prevstate :: Integer;
+inherited attribute prevState :: Integer;
 synthesized attribute stateList :: [[Integer]];
 synthesized attribute startState :: Integer;
 synthesized attribute stateCount :: Integer;
 synthesized attribute finalStates :: Integer;
 synthesized attribute transTable :: [Transition];
 
-attribute fromState :: Integer;
-attribute toState :: Integer;
-attribute transChar :: RegexChar_t;
+synthesized attribute fromState :: Integer;
+synthesized attribute toState :: Integer;
+synthesized attribute transChar :: String;
 
 synthesized attribute pp :: String;
-synthesized attribute dfa:: DFA;
+--synthesized attribute dfa:: DFA;
 
 -- Abstract production to handle Alternate (|) operator
 abstract production AlternationOp
@@ -39,19 +46,10 @@ e::REGEX ::= l::REGEX r::REGEX
 function AlternationOpFun
 NFA ::= l::NFA r::NFA
 {
-	local attribute e :: NFA;
+	local attribute transList :: [Transition] = (createTrans(0, 1, "^") :: createTrans(l.stateCount, l.stateCount + r.stateCount + 1, "^") :: createTrans(0, l.stateCount + 1, "^") :: createTrans(l.stateCount + r.stateCount, l.stateCount + r.stateCount + 1, "^") :: []) ++ addToTransTable(r.transTable, l.stateCount + 1) ++ addToTransTable(l.transTable, 1);
 
-	-- Resultant state count will be the sum of the state counts of the left NFA and the right NFA
-	e.stateCount = l.stateCount + r.stateCount + 2;
-
-	e.transTable = (createTrans(0, 1, '^') :: createTrans(l.stateCount, e.stateCount - 1, '^') :: createTrans(0, l.stateCount + 1, '^') :: createTrans(l.stateCount + r.stateCount, e.stateCount - 1, '^') :: e.transTable) ++ addToTransTable(r.transTable, l.stateCount + 1) ++ addToTransTable(l.transTable, 1); 
-
-	--Set the final state
-	e.finalStates = e.stateCount - 1;
+	local attribute e :: NFA = initNFA(l.stateCount + r.stateCount + 2, transList, l.stateCount + r.stateCount + 1);
 	
-	-- May be needed in future in case of design change
-	-- e.finalStates = (e.stateCount - 1) :: e.finalStates;
-
 	return e;
 }
 
@@ -67,18 +65,9 @@ e::REGEX ::= param::REGEX
 function KleeneOpFun
 NFA ::= param::NFA
 {
-	local attribute e :: NFA;
+	local attribute transList :: [Transition] = (createTrans(0, 1, "^") :: createTrans(param.stateCount, param.stateCount + 1, "^") :: createTrans(param.stateCount, 1, "^") :: createTrans(0, param.stateCount + 1, "^") :: []) ++ addToTransTable(param.transTable, 1);
 
-	-- Two extra states will get added
-	e.stateCount = param.stateCount + 2;
-
-	e.transTable = (createTrans(0, 1, '^') :: createTrans(param.stateCount, param.stateCount + 1, '^') :: createTrans(param.stateCount, 1, '^') :: createTrans(0, param.stateCount + 1, '^') :: e.transTable) ++ addToTransTable(param.transTable, 1);
-
-	--Setting the final state
-	e.finalStates = e.stateCount + 1;
-	
-	-- May be needed in future in case of design change
-	-- e.finalStates = (e.stateCount + 1) :: e.finalStates;
+	local attribute e :: NFA = initNFA(param.stateCount + 2, transList, param.stateCount + 3);
 
 	return e;
 }
@@ -95,25 +84,16 @@ e :: REGEX ::= l :: REGEX r :: REGEX
 function ConcatOpFun
 NFA ::= l :: NFA r :: NFA
 {
-	local attribute e :: NFA;
+	local attribute transList :: [Transition] = (createTrans(l.stateCount - 1, l.stateCount, "^") :: []) ++ addToTransTable(l.transTable, 0) ++ addToTransTable(r.transTable, l.stateCount);
 
-	-- The number of states in the resulting NFA will be the sum of vertices in the concatenated NFAs
-	e.stateCount = l.stateCount + r.stateCount;
-	
-	e.transTable = (createTrans(l.stateCount - 1, l.stateCount, '^') :: e.transTable) ++ addToTransTable(l.transTable, 0) ++ addToTransTable(r.transTable, l.stateCount);
-	
-	--Setting the final state
-	e.finalStates = (l.stateCount + r.stateCount - 1);
-	
-	-- May be needed in future in case of design change
-	-- e.finalStates = (l.stateCount + r.stateCount - 1) :: e.finalStates;
+	local attribute e :: NFA = initNFA(l.stateCount + r.stateCount, transList, l.stateCount + r.stateCount - 1);
 
 	return e;
 }
 
 -- Abstract production to create a new NFA for a single unit
 abstract production NewNfa
-e :: REGEX ::= param :: RegexChar_t
+e :: REGEX ::= param :: String
 {
 	e.nfa = NewNfaFun(param);
 	e.pp = populatePP(e.nfa.transTable);
@@ -121,63 +101,74 @@ e :: REGEX ::= param :: RegexChar_t
 
 -- Function to create a new NFA for a single unit
 function NewNfaFun
-NFA ::= param :: RegexChar_t
+NFA ::= param :: String
 {
-	local attribute e :: NFA;
-
-	e.stateCount = 2;
 	local attribute transition :: Transition;
 	transition = createTrans(0, 1, param);
-	e.transTable = transition :: e.TransTable
-	e.finalStates = 1;
-
+	local attribute e :: NFA = initNFA(2, [transition], 1);
 	return e;
 }
 
 -- Abstract production for epsilon transition
 abstract production NewEpsilonTrans
-e :: NFA ::=
+e :: REGEX ::=
 {
 	e.nfa = NewEpsilonTransFun(); 
 	e.pp = populatePP(e.nfa.transTable);
 }
 
 -- Function for epsilon transition
-production NewEpsilonTransFun
-e :: NFA ::=
+function NewEpsilonTransFun
+NFA ::=
 {
-	local attribute e :: NFA;
-
-	e.stateCount = 2;
 	local attribute transition :: Transition;
-	transition = createTrans(0, 1, '^');
-	e.transTable = transition :: e.TransTable;
-
+	transition = createTrans(0, 1, "^");
+	local attribute e :: NFA = initNFA(2, [transition], 1);
 	return e;
 }
 
---Helper functions for NFA
+-- Helper functions for NFA
 
 function addToTransTable
 [Transition] ::= transitions::[Transition] offset::Integer
 {
-	  return if null(transitions)
-			then []
-			else
-				local attribute transition :: Transition = head(transitions);
-				transition.fromstate = transition.fromstate + offset;
-				transition.tostate = transtion. tostate + offset;
-				transition :: addToTransTable(tail(transitions), offset);	
+	return if null(transitions)
+	then 
+		[]
+	else
+		returnTrans(head(transitions), offset) :: addToTransTable(tail(transitions), offset);	
+}
+
+abstract production returnTrans
+transition :: Transition ::= trans :: Transition offset :: Integer
+{
+	transition.fromState = trans.fromState + offset;
+	transition.toState = trans.toState + offset;
+	transition.transChar = trans.transChar;
+}
+
+abstract production initNFA
+r :: NFA ::= stateCount :: Integer transTable :: [Transition] finalStates :: Integer 
+{
+	r.stateCount = stateCount;
+	r.transTable = transTable;
+	r.finalStates = finalStates;
+}
+
+abstract production initTrans
+t :: Transition ::= fromState :: Integer toState :: Integer transChar :: String
+{
+	t.fromState = fromState;
+	t.toState = toState;
+	t.transChar = transChar;
 }
 
 function createTrans
-Transition ::= fromState :: Integer toState :: Integer transChar :: RegexChar_t
+Transition ::= fromState :: Integer toState :: Integer transChar :: String
 {
-	local attribute transition :: Transition;
-	transition.fromState = fromState;
-	transition.toState = toState;
-	transition.transChar = transChar;
-	return transition; 
+	local attribute transition :: Transition = initTrans(fromState, toState, transChar);
+	
+	return transition; 	
 }
 
 function populatePP
@@ -186,11 +177,14 @@ String ::= transitions::[Transition]
 	return if null(transitions)
 		then ""
 		else
-			local attribute transition::Transition = head(transitions);
-			"(" ++ toString(transition.fromState) ++ "," ++ toString(transition.toState) ++ "," ++ transChar.lexeme ++ ")" ++ populatePP(tail(transitions));
+			-- local attribute transition::Transition = head(transitions);
+			"(" ++ toString(head(transitions).fromState) ++ "," ++ toString(head(transitions).toState) ++ "," ++ head(transitions).transChar ++ ")" ++ populatePP(tail(transitions));
 
 }
 
+
+
+{-
 -- CODE FOR NFA to DFA CONVERSION:
 
 -- CLOSURE FUNCTION IMPLEMENTATION
@@ -388,3 +382,5 @@ function removeCurrentState
 			else
 				removeCurrentState(state, tail(states));
 }
+
+-}
