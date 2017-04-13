@@ -32,6 +32,8 @@ nonterminal Regex_CHAR with ast_REGEX;
 synthesized attribute ast_REGEX :: REGEX ;
 -- synthesized attribute root :: ROOT ;
 
+
+
 concrete production regex_c
 -- Some changes might be needed here
 e::cnc:PrimaryExpr_c ::= d1::RegexBegin_t  re::Regex_RE  d2::RegexEnd_t
@@ -56,7 +58,7 @@ layout {}
 {
   re.ast_REGEX = AlternationOp(first.ast_REGEX, rest.ast_REGEX);
 }
-
+ 
 concrete production CtoB
 c::Regex_C ::= b::Regex_B
 layout {}
@@ -99,16 +101,9 @@ layout {}
   sim.ast_REGEX = char.ast_REGEX;
 }
 
-concrete production Simtoeps
-sim::Regex_Sim ::=
-layout {}
-{
-  sim.ast_REGEX = NewEpsilonTrans();
-}
-
 concrete production CHARtochar
 top::Regex_CHAR ::= char:: RegexChar_t
 layout {}
 {
-  top.ast_REGEX = NewNfa(char.lexeme);
+  --top.ast_REGEX = NewNfa(char.lexeme);
 }

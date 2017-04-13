@@ -13,7 +13,7 @@ nonterminal REGEX with pp, nfa;
 -- nonterminal ROOT with pp, dfa;
 
 -- NFA is a type with three arributes which are stateCount, finalState and transTable
---nonterminal NFA with stateCount, finalStates, transTable, prevState, dfa;
+-- nonterminal NFA with stateCount, finalStates, transTable, prevState, dfa;
 nonterminal NFA with stateCount, finalStates, transTable, prevState;
 
 -- Transition is a type with three types which are fromState, toState and transChar
@@ -109,24 +109,6 @@ NFA ::= param :: String
 	return e;
 }
 
--- Abstract production for epsilon transition
-abstract production NewEpsilonTrans
-e :: REGEX ::=
-{
-	e.nfa = NewEpsilonTransFun(); 
-	e.pp = populatePP(e.nfa.transTable);
-}
-
--- Function for epsilon transition
-function NewEpsilonTransFun
-NFA ::=
-{
-	local attribute transition :: Transition;
-	transition = createTrans(0, 1, "^");
-	local attribute e :: NFA = initNFA(2, [transition], 1);
-	return e;
-}
-
 -- Helper functions for NFA
 
 function addToTransTable
@@ -182,9 +164,9 @@ String ::= transitions::[Transition]
 
 }
 
-
-
 {-
+
+-- Uncomment the code
 -- CODE FOR NFA to DFA CONVERSION:
 
 -- CLOSURE FUNCTION IMPLEMENTATION
@@ -212,27 +194,21 @@ function epsClosureMultipleStates
 	return if null(inputStates)
 	then []
 	else
-		local attribute inputState :: Integer = head(inputStates);
-		returnList = epsClosureOneState(transitions, inputState, '^', transitions);
-		returnList = returnList ++ epsClosureMultipleStates(transitions, tail(inputStates), '^', []);
-		removeDups(returnList, []);
+		removeDups(epsClosureOneState(transitions, head(inputStates), '^', transitions) ++ epsClosureMultipleStates(transitions, tail(inputStates), '^', []), []);
 }
 
 function epsClosureOneState
 [Integer] ::= transitions :: [Transition] inputState :: Integer inputChar :: RegexChar_t returnList :: [Integer] staticTransitions :: [Transition]
 {
-	if null(transitions)
+	return if null(transitions)
 	then 
-		return inputState :: returnList
+		inputState :: returnList
 	else
-		local attribute transition :: Transition = head(transitions);
-		if inputState == transition.fromState && inputChar == transition.transChar
+		if inputState == head(transitions).fromState && inputChar == head(transitions).transChar
 		then
-			local attribute dynamicTransTable :: [Transition] = staticTransitions;
-			returnList = epsClosureOneState(dynamicTransTable, transition.toState, '^', returnList, staticTransitions);
-			return epsClosureOneState(tail(transitions), inputState, '^', returnList, staticTransitions);
+			epsClosureOneState(tail(transitions), inputState, '^', epsClosureOneState(staticTransitions, head(transitions).toState, '^', returnList, staticTransitions), staticTransitions)
 		else
-			return epsClosureOneState(tail(transitions), inputState, '^', returnList, staticTransitions);
+			epsClosureOneState(tail(transitions), inputState, '^', returnList, staticTransitions);
 }
 
 -- MOVE FUNCTION
@@ -241,7 +217,7 @@ function move
 [Integer] ::= state :: [Integer] input :: RegexChar_t nfa :: NFA
 {
 	return if null(state)
-		then [];
+		then []
 		else
 			removeDups((walkTransitions (nfa.transitions, head(state), input) ++ move (tail(state), input, nfa)), []);
 }
@@ -252,12 +228,10 @@ function walkTransitions
 [Integer] ::= transitions::[Transition] state::Integer input::RegexChar_t
 {
 	return if null(transitions)
-		then [];
+		then []
 		else
-			local transition::Transition = head(transitions);
-
-			if transition.transChar == input
-				then transition.toState :: walkTransitions(tail(transitions), state, input);
+			if head(transitions).transChar == input
+				then head(transitions).toState :: walkTransitions(tail(transitions), state, input)
 			else
 				walkTransitions(tail(transitions), state, input);
 }
@@ -265,26 +239,25 @@ function walkTransitions
 function removeDups 
 [Integer] ::= listWithDups :: [Integer] listWithOutDups :: [Integer]
 {
-	if null(listWithDups)
+	return if null(listWithDups)
 	then 
-		return listWithOutDups;
+		listWithOutDups
 	else 
-		local attribute element :: Integer = head(listWithDups);
-		if(isStatePresent(element, listWithOutDups))
+		if(isStatePresent(head(listWithDups), listWithOutDups))
 		then
-			return removeDups(tail(listWithDups), listWithOutDups); 
+			removeDups(tail(listWithDups), listWithOutDups)
 		else
-			return removeDups(tail(listWithDups), element :: listWithOutDups);
+			removeDups(tail(listWithDups), head(listWithDups) :: listWithOutDups);
 }
 
 function isStatePresent
 Boolean ::= state::Integer statelist::[Integer]
 {
 	return if null(statelist)
-		then false;
+		then false
 		else
 			if state == head(statelist) 
-			then true;
+			then true
 			else
 				isStatePresent(state, tail(statelist));
 }
@@ -304,83 +277,72 @@ synthesized attribute c :: String;
 
 nonterminal DFATransition with DFAFromState, DFAToState, transChar;
 
-attribute DFAFromState :: [Integer];
-attribute DFAToState :: [Integer];
+synthesized attribute DFAFromState :: [Integer];
+synthesized attribute DFAToState :: [Integer];
 
 abstract production subsetConstruction
-r::ROOT ::= regex :: REGEX
+d :: DFA ::= nfa::NFA
 {
-	r.dfa = subsetConstructionFun(regex.nfa);
-	r.pp = populatePP(regex.nfa.transTable);
-}
-
-function subsetConstructionFun
-DFA ::= nfa::NFA
-{
-	local attribute dfa :: DFA;
-	local attribute states :: [[Integer]];
-
-	dfa.startState = epsClosure(nfa, [nfa.startState]);
-	states = dfa.startState :: states;
-
-	dfa = createDFA (nfa, dfa, states);
+	d.startState = epsClosure(nfa, [nfa.startState]);
+	d = createDFA (nfa, d, d.startState);
 	-- Add code to generate unique IDs 
-	return dfa;
+	-- Add code to add final states
+	--d.finalStates = populateFinalStates(d.states, nfa.finalStates);
 }
 
 function createDFA
 DFA ::= nfa::NFA dfa::DFA states::[[Integer]]
 {
-	if null(states)
-		then return dfa;
+	return if null(states)
+	then 
+		dfa
 	else
-		local attribute state :: [Integer] = head(states);
-		
-		if isStatePresent(nfa.finalStates, state)
-			dfa.finalStates = state :: dfa.finalStates;
-
-		dfa = createDFATransitions (state, nfa.inputs, dfa, nfa); 		
-
-		dfa.states = removeCurrentState (state, states);
-
-		return createDFA(nfa, dfa, dfa.states); 
+		if isStatePresent(nfa.finalStates, head(states))
+		then 
+			createDFA(nfa, createDFATransitions (head(states), nfa.inputs, dfa, nfa), removeCurrentState (head(states), states)) 
+		else
+			createDFA(nfa, createDFATransitions (head(states), nfa.inputs, dfa, nfa), removeCurrentState (head(states), states)); 
 }
 
 function createDFATransitions 
 DFA ::=	state :: [Integer] inputs :: [RegexChar_t] dfa::DFA nfa :: NFA
 {
-	if null(inputs)
-		return dfa;
+	return if null(inputs)
+	then
+		dfa
 	else
-		local attribute epsClosureList :: [Integer];
-		
-		epsClosureList = epsClosure (nfa, move(state, head(inputs), nfa));  
+		createDFATransitions(tail(inputs), helperProduct(state, inputs, dfa, nfa), state, nfa);		
+}
 
-		if presentInDFAStates(epsClosureList, dfa.states)
-			then dfa.states = epsclosurelist :: dfa.states;
+abstract production helperProduct
+d :: DFA ::=state :: [Integer] inputs :: [RegexChar_t] dfa::DFA nfa :: NFA
+{
+	local attribute epsClosureList :: [Integer];
+	epsClosureList = epsClosure (nfa, move(state, head(inputs), nfa));  
 
-		local dfaTransition :: DFATransition;
+	-- if presentInDFAStates(epsClosureList, dfa.states)
+	-- then 
+		dfa.states = epsclosurelist :: dfa.states;
 
-		dfaTransition.DFAFromState = state;
-		dfaTransition.DFAToState = epsclosurelist;
-		dfaTransition.transChar = head(inputs);
-
-		dfa.transTable = dfaTransition :: dfa.transTable;
-
-		return createDFATransitions(tail(inputs), dfa, state, nfa);		
+	local attribute dfaTransition :: DFATransition;
+	dfaTransition.DFAFromState = state;
+	dfaTransition.DFAToState = epsclosurelist;
+	dfaTransition.transChar = head(inputs);
+	dfa.transTable = dfaTransition :: dfa.transTable;
+	d=dfa;		
 }
 
 function removeCurrentState
 [[Integer]] ::= state::[Integer] states::[[Integer]]
 {
 	return if null(states)
-		then [[]];
-
+	then [[]]
+	else
+		if head(states) !=  state
+		then 
+			head(states) :: removeCurrentState(state, tail(states))
 		else
-			if head(states) !=  state
-				then head(states) :: removeCurrentState(state, tail(states));
-			else
-				removeCurrentState(state, tail(states));
+			removeCurrentState(state, tail(states));
 }
 
 -}
