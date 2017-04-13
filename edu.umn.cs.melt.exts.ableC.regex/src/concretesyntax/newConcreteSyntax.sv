@@ -32,7 +32,7 @@ nonterminal Regex_CHAR with ast_REGEX;
 synthesized attribute ast_REGEX :: REGEX ;
 -- synthesized attribute root :: ROOT ;
 
-
+marking terminal Regex_t '/(a|b)*/';
 
 concrete production regex_c
 -- Some changes might be needed here
@@ -43,6 +43,9 @@ layout {}
   -- Figure out a way to print the NFA, DFA
   -- e.ast = createDFA(re.ast_REGEX);
   -- e.ast = printNFA(re.ast_REGEX);
+
+  -- nth try to print NFA
+  e.ast = printString("Lalalalalal", location=e.location);
 }
 
 concrete production REtoC

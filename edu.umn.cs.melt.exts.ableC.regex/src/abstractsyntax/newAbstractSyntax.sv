@@ -34,6 +34,18 @@ synthesized attribute transChar :: String;
 synthesized attribute pp :: String;
 --synthesized attribute dfa:: DFA;
 
+abstract production printString
+top :: Expr ::= s :: String
+{
+	forwards to
+		directCallExpr
+		(
+			name("printf", location=top.location),
+			consExpr(stringLiteral(s, location=top.location), nilExpr()),
+			location=top.location
+		);		
+}
+
 -- Abstract production to handle Alternate (|) operator
 abstract production AlternationOp
 e::REGEX ::= l::REGEX r::REGEX
