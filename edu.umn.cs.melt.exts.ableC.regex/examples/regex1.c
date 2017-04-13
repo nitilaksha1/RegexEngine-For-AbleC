@@ -367,7 +367,7 @@ signed int main(signed int  argc, char  * * argv)
 {
 
   {
-    "/abc/";
+    const char  *r = "/abc/";;
     return 0;
   }
 }

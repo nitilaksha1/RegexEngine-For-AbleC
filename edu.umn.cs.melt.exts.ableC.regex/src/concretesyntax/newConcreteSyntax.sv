@@ -20,21 +20,28 @@ terminal RegexWildcard_t '.' lexer classes { REGEX_OPER };
 terminal RegexChar_t     /./ lexer classes { REGEX_ESC }, submits to { cnc:Divide_t };
 terminal EscapedChar_t /\\./ submits to { REGEX_ESC };
 
+nonterminal Root_c with root, pp;
 
--- nonterminal Root_c with pp, root;
+nonterminal Regex_RE with ast_REGEX, pp;     
+nonterminal Regex_C with ast_REGEX, pp;      
+nonterminal Regex_B with ast_REGEX, pp;    
+nonterminal Regex_Sim with ast_REGEX, pp;
+nonterminal Regex_CHAR with ast_REGEX, pp;
 
-nonterminal Regex_RE with ast_REGEX;     
-nonterminal Regex_C with ast_REGEX;      
-nonterminal Regex_B with ast_REGEX;    
-nonterminal Regex_Sim with ast_REGEX;
-nonterminal Regex_CHAR with ast_REGEX;
+synthesized attribute pp :: String;
+synthesized attribute root :: ROOT;
+synthesized attribute ast_REGEX :: REGEX;
 
-synthesized attribute ast_REGEX :: REGEX ;
--- synthesized attribute root :: ROOT ;
+marking terminal Regex_t 'regex';
 
-marking terminal Regex_t '/(a|b)*/';
+concrete production regexp
+e :: Root_c ::= 'regex' d1 :: RegexBegin_t re::Regex_RE d2::RegexEnd_t ';'
+layout {}
+{
+  e.root = rootREGEX(re.ast_REGEX);
+}
 
-concrete production regex_c
+{--concrete production regex_c
 -- Some changes might be needed here
 e::cnc:PrimaryExpr_c ::= d1::RegexBegin_t  re::Regex_RE  d2::RegexEnd_t
 layout {}
@@ -47,7 +54,7 @@ layout {}
   -- nth try to print NFA
   e.ast = printString("Lalalalalal", location=e.location);
 }
-
+--}
 concrete production REtoC
 re::Regex_RE ::= c::Regex_C
 layout {}
@@ -108,5 +115,5 @@ concrete production CHARtochar
 top::Regex_CHAR ::= char:: RegexChar_t
 layout {}
 {
-  --top.ast_REGEX = NewNfa(char.lexeme);
+  top.ast_REGEX = NewNfa(char.lexeme);
 }

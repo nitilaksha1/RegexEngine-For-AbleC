@@ -688,7 +688,6 @@ extern void funlockfile (FILE *__stream) __attribute__ ((__nothrow__ , __leaf__)
 # 3 "edu.umn.cs.melt.exts.ableC.regex/examples/regex1.xc"
 int main (int argc, char **argv) {
 
-
-  "/abc/";
+  const char* r="/abc/";
   return 0 ;
 }

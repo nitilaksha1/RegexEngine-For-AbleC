@@ -7,10 +7,11 @@ imports edu:umn:cs:melt:exts:ableC:regex:src:concretesyntax;
 -- Need a way to represent epsilon character in Silver
 -- have decided to use '^' for time being
 
+-- nonterminal ROOT with pp, regex;
+nonterminal ROOT with pp, regex;
+
 -- REGEX is a type with NFA and pp
 nonterminal REGEX with pp, nfa;
-
--- nonterminal ROOT with pp, dfa;
 
 -- NFA is a type with three arributes which are stateCount, finalState and transTable
 -- nonterminal NFA with stateCount, finalStates, transTable, prevState, dfa;
@@ -20,6 +21,7 @@ nonterminal NFA with stateCount, finalStates, transTable, prevState;
 nonterminal Transition with fromState, toState, transChar;
 
 synthesized attribute nfa :: NFA;
+synthesized attribute regex :: REGEX;
 inherited attribute prevState :: Integer;
 synthesized attribute stateList :: [[Integer]];
 synthesized attribute startState :: Integer;
@@ -34,16 +36,10 @@ synthesized attribute transChar :: String;
 synthesized attribute pp :: String;
 --synthesized attribute dfa:: DFA;
 
-abstract production printString
-top :: Expr ::= s :: String
+abstract production rootREGEX
+r::ROOT ::= x::REGEX
 {
-	forwards to
-		directCallExpr
-		(
-			name("printf", location=top.location),
-			consExpr(stringLiteral(s, location=top.location), nilExpr()),
-			location=top.location
-		);		
+  r.pp = x.pp ;
 }
 
 -- Abstract production to handle Alternate (|) operator
