@@ -277,7 +277,7 @@ Boolean ::= state::Integer statelist::[Integer]
 
 nonterminal DFA with startState, finalStates, transTable, states, c;
 
-synthesized attribute startState :: Integer;
+synthesized attribute startState :: [Integer];
 synthesized attribute states :: [[Integer]];
 synthesized attribute finalStates :: [[Integer]];
 synthesized attribute transTable :: [DFATransition];
@@ -292,12 +292,29 @@ abstract production subsetConstruction
 d :: DFA ::= nfa::NFA
 {
 	d.startState = epsClosure(nfa, [nfa.startState]);
-	d = createDFA (nfa, d, d.startState);
-	-- Add code to generate unique IDs 
+	d.states = d.states ++ d.startState;
+	d = createDFA (nfa, d, d.states);
+
+	-- TODO: Add code to generate unique IDs 
 	-- Add code to add final states
-	--d.finalStates = populateFinalStates(d.states, nfa.finalStates);
+	d.finalStates = populateFinalStates(d.states, nfa.finalStates);
 }
 
+function populateFinalStates
+[[Integer]] ::= dfastates :: [[Integer]] nfafinalstate :: Integer
+{
+	return if null(dfastates)
+		then 
+			[[]]
+		else
+			if isStatePresent(nfafinalstate, head(dfastates)) == true
+			then 
+				head(dfastates) :: populateFinalStates(tail(dfastates), nfafinalstate)
+			else
+				populateFinalStates(tail(dfastates), nfafinalstate);
+}
+
+---WHY ARE WE NOT DOING TAIL(STATES) INSTEAD OF CALLING REMOVECURRENTSTATE()
 function createDFA
 DFA ::= nfa::NFA dfa::DFA states::[[Integer]]
 {
@@ -328,16 +345,28 @@ d :: DFA ::=state :: [Integer] inputs :: [RegexChar_t] dfa::DFA nfa :: NFA
 	local attribute epsClosureList :: [Integer];
 	epsClosureList = epsClosure (nfa, move(state, head(inputs), nfa));  
 
-	-- if presentInDFAStates(epsClosureList, dfa.states)
-	-- then 
-		dfa.states = epsclosurelist :: dfa.states;
+	if presentInDFAStates(epsClosureList, dfa.states) == false
+	then 
+		dfa.states = epsclosurelist :: dfa.states
 
 	local attribute dfaTransition :: DFATransition;
 	dfaTransition.DFAFromState = state;
 	dfaTransition.DFAToState = epsclosurelist;
 	dfaTransition.transChar = head(inputs);
 	dfa.transTable = dfaTransition :: dfa.transTable;
-	d=dfa;		
+	d = dfa;		
+}
+
+function presentInDFAStates
+Boolean ::= epslist :: [Integer] dfalist:: [[Integer]]
+{
+	return if null(dfalist)
+		then false
+		else
+			if epslist == head(dfalist)
+			then true
+			else
+				presentInDFAStates(epslist, tail(dfalist));
 }
 
 function removeCurrentState
