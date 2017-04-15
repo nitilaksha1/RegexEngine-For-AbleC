@@ -49,7 +49,7 @@ abstract production AlternationOp
 e::REGEX ::= l::REGEX r::REGEX
 {
 	e.nfa = AlternationOpFun(l.nfa, r.nfa); 
-	e.pp = populatePP(e.nfa.transTable);
+	e.pp = populatePPForDFA(e.nfa.dfa.dfaTransTable);
 }
 
 -- Function handle Alternate (|) operator
