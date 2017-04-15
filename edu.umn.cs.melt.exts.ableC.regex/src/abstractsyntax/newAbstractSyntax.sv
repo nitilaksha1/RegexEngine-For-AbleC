@@ -41,7 +41,7 @@ synthesized attribute dfa:: DFA;
 abstract production rootREGEX
 r::ROOT ::= x::REGEX
 {
-  r.pp = x.pp ;
+  r.pp = populatePPForDFA(x.nfa.dfa.dfaTransTable);
 }
 
 -- Abstract production to handle Alternate (|) operator
@@ -49,7 +49,7 @@ abstract production AlternationOp
 e::REGEX ::= l::REGEX r::REGEX
 {
 	e.nfa = AlternationOpFun(l.nfa, r.nfa); 
-	e.pp = populatePPForDFA(e.nfa.dfa.dfaTransTable);
+	e.pp = populatePP(e.nfa.transTable);
 }
 
 -- Function handle Alternate (|) operator
