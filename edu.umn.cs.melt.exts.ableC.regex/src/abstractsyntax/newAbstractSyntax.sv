@@ -386,9 +386,19 @@ DFA ::= nfa :: NFA dfa :: DFA states :: [[Integer]]
 	else
 		if isStatePresent(nfa.finalStates, head(states))
 		then 
-			createDFA(nfa, createDFATransitions (head(states), nfa.inputs, dfa, nfa), removeCurrentState (head(states), states)) 
+			createDFA(nfa, createDFATransitions (head(states), nfa.inputs, AddFinalStateToDFA(head(states), dfa), nfa), removeCurrentState (head(states), states)) 
 		else
 			createDFA(nfa, createDFATransitions (head(states), nfa.inputs, dfa, nfa), removeCurrentState (head(states), states)); 
+}
+
+abstract production AddFinalStateToDFA
+d :: DFA ::= state :: [Integer] dfa :: DFA
+{
+	d.startState = dfa.startState;
+	d.dfaStates = dfa.dfaStates;
+	d.c = dfa.c;
+	d.transTable = dfa.transTable;
+	d.finalStates = state :: d.finalStates;
 }
 
 function createDFATransitions 
