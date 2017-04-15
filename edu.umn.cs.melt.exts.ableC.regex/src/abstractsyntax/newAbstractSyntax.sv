@@ -300,6 +300,20 @@ function removeStringDuplicate
 			removeStringDuplicate(tail(list), head(list) :: templist);
 }
 
+function removeDupDFAStates
+[[Integer] ::= list :: [[Integer]] templist :: [[Integer]]
+{
+	return if null(list)
+		then
+			templist
+		else
+			if (checkPresence(head(list), templist))
+				then
+					removeDupDFAStates(tail(list), templist)
+				else
+					removeDupDFAStates(tail(list), head(list) :: templist);
+}
+
 function isStatePresent
 Boolean ::= state::Integer statelist::[Integer]
 {
@@ -417,7 +431,8 @@ d :: DFA ::= state :: [Integer] inputs :: [String] dfa :: DFA nfa :: NFA
 	local attribute epsClosureList :: [Integer];
 	epsClosureList = epsClosure (nfa, move(state, head(inputs), nfa));  
 
-	d.dfaStates = epsClosureList :: dfa.dfaStates;
+	d.dfaStates = removeDupDFAStates(epsClosureList :: dfa.dfaStates, []);
+
 	-- TODO: TO REMOVE DUPS from dfa.states
 	d.dfaTransTable = createDFATrans(state, epsClosureList, head(inputs)) :: dfa.dfaTransTable;
 }
