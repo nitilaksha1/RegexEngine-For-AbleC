@@ -168,11 +168,38 @@ function populatePP
 String ::= transitions::[Transition]
 {
 	return if null(transitions)
-		then ""
+		then 
+			""
 		else
 			-- local attribute transition::Transition = head(transitions);
 			"(" ++ toString(head(transitions).fromState) ++ "," ++ toString(head(transitions).toState) ++ "," ++ head(transitions).transChar ++ ")" ++ populatePP(tail(transitions));
 
+}
+
+function populatePPForDFA
+String ::= transitions::[DFATransition]
+{
+	return if null(transitions)
+		then
+			""
+		else
+			"[" ++ getDFATransString(head(transitions)) ++ populatePPForDFA(tail(transitions)) ++ "]";
+}
+												
+function getDFATransString
+String ::= dfatransition :: DFATransition
+{
+	return "(" ++ getStringFromList(dfatransition.DFAFromState) ++ "," ++ getStringFromList(dfatransition.DFAToState) ++ "," + dfatransition.transChar ++ ")";
+}
+
+function getStringFromList
+String ::= intlist :: [Integer]
+{
+	return if null(intlist)
+		then 
+			""
+		else
+			"[" ++ head(intlist) ++ "," ++ getStringFromList(tail(intlist)) ++ "]";
 }
 
 -- Uncomment the code
