@@ -41,7 +41,15 @@ synthesized attribute dfa:: DFA;
 abstract production rootREGEX
 r::ROOT ::= x::REGEX
 {
-  r.pp = populatePPForDFA(x.nfa.dfa.dfaTransTable);
+  r.pp = populatePPForDFA(getDFATranstable(x.nfa));
+  --r.pp = x.pp;
+}
+
+function getDFATranstable
+[DFATransition] ::= nfa :: NFA
+{
+	local attribute nfa1 :: NFA = subsetConstruction(nfa);
+	return nfa1.dfa.dfaTransTable;
 }
 
 -- Abstract production to handle Alternate (|) operator
@@ -173,7 +181,6 @@ String ::= transitions::[Transition]
 		else
 			-- local attribute transition::Transition = head(transitions);
 			"(" ++ toString(head(transitions).fromState) ++ "," ++ toString(head(transitions).toState) ++ "," ++ head(transitions).transChar ++ ")" ++ populatePP(tail(transitions));
-
 }
 
 function populatePPForDFA
@@ -189,7 +196,7 @@ String ::= transitions::[DFATransition]
 function getDFATransString
 String ::= dfatransition :: DFATransition
 {
-	return "(" ++ getStringFromList(dfatransition.DFAFromState) ++ "," ++ getStringFromList(dfatransition.DFAToState) ++ "," + dfatransition.transChar ++ ")";
+	return "(" ++ getStringFromList(dfatransition.DFAFromState) ++ "," ++ getStringFromList(dfatransition.DFAToState) ++ "," ++ dfatransition.transChar ++ ")";
 }
 
 function getStringFromList
@@ -199,7 +206,7 @@ String ::= intlist :: [Integer]
 		then 
 			""
 		else
-			"[" ++ head(intlist) ++ "," ++ getStringFromList(tail(intlist)) ++ "]";
+			"[" ++ toString(head(intlist)) ++ "," ++ getStringFromList(tail(intlist)) ++ "]";
 }
 
 -- Uncomment the code
@@ -301,7 +308,7 @@ function removeStringDuplicate
 }
 
 function removeDupDFAStates
-[[Integer] ::= list :: [[Integer]] templist :: [[Integer]]
+[[Integer]] ::= list :: [[Integer]] templist :: [[Integer]]
 {
 	return if null(list)
 		then
@@ -361,7 +368,6 @@ n :: NFA ::= nfa::NFA
 	n.dfa = createDFA (nfa, epsClosureDFAFun(nfa, [0]), [epsClosure(nfa, [0])]);
 
 	-- TODO: Add code to generate unique IDs
-	--d.dfaFinalStates = populateFinalStates(d.dfaStates, nfa.finalStates);
 }
 
 function epsClosureDFAFun
@@ -374,21 +380,9 @@ abstract production epsClosureDFA
 d :: DFA ::= epsClosureRes :: [Integer]
 {
 	d.dfaStartState = epsClosureRes;
-	d.dfaStates = d.dfaStartState :: d.dfaStates;
-}
-
-function populateFinalStates
-[[Integer]] ::= dfastates :: [[Integer]] nfafinalstate :: Integer
-{
-	return if null(dfastates)
-		then 
-			[[]]
-		else
-			if isStatePresent(nfafinalstate, head(dfastates)) == true
-			then 
-				head(dfastates) :: populateFinalStates(tail(dfastates), nfafinalstate)
-			else
-				populateFinalStates(tail(dfastates), nfafinalstate);
+	-- CHECK THIS LATER
+	-- d.dfaStates = d.dfaStartState :: d.dfaStates;
+	d.dfaStates = d.dfaStartState :: [[]];
 }
 
 function createDFA
@@ -400,19 +394,31 @@ DFA ::= nfa :: NFA dfa :: DFA states :: [[Integer]]
 	else
 		if isStatePresent(nfa.finalStates, head(states))
 		then 
-			createDFA(nfa, createDFATransitions (head(states), nfa.inputs, AddFinalStateToDFA(head(states), dfa), nfa), removeCurrentState (head(states), states)) 
+			--createDFA(nfa, createDFATransitions (head(states), nfa.inputs, AddFinalStateToDFA(head(states), dfa), nfa), removeCurrentState (head(states), states))
+			createDFA(nfa, createDFATransitions (head(states), nfa.inputs, AddFinalStateToDFA(head(states), dfa), UpdateDFAForNfa(nfa, AddFinalStateToDFA(head(states), dfa))), removeCurrentState (head(states), states))  
 		else
+			--createDFA(nfa, createDFATransitions (head(states), nfa.inputs, dfa, nfa), removeCurrentState (head(states), states)); 
 			createDFA(nfa, createDFATransitions (head(states), nfa.inputs, dfa, nfa), removeCurrentState (head(states), states)); 
+}
+
+abstract production UpdateDFAForNfa
+n :: NFA ::= nfainput :: NFA dfa::DFA
+{
+	n.stateCount = nfainput.stateCount;
+	n.finalStates = nfainput.finalStates;
+	n.transTable = nfainput.transTable;
+	n.inputs = nfainput.inputs;
+	n.dfa = dfa;
 }
 
 abstract production AddFinalStateToDFA
 d :: DFA ::= state :: [Integer] dfa :: DFA
 {
-	d.startState = dfa.startState;
+	d.dfaStartState = dfa.dfaStartState;
 	d.dfaStates = dfa.dfaStates;
-	d.c = dfa.c;
-	d.transTable = dfa.transTable;
-	d.finalStates = state :: d.finalStates;
+	-- d.c = dfa.c;
+	d.dfaTransTable = dfa.dfaTransTable;
+	d.dfaFinalStates = state :: d.dfaFinalStates;
 }
 
 function createDFATransitions 
@@ -432,8 +438,8 @@ d :: DFA ::= state :: [Integer] inputs :: [String] dfa :: DFA nfa :: NFA
 	epsClosureList = epsClosure (nfa, move(state, head(inputs), nfa));  
 
 	d.dfaStates = removeDupDFAStates(epsClosureList :: dfa.dfaStates, []);
-
-	-- TODO: TO REMOVE DUPS from dfa.states
+	-- CHECK THIS LATER
+	-- d.dfaTransTable = createDFATrans(state, epsClosureList, head(inputs)) :: dfa.dfaTransTable;
 	d.dfaTransTable = createDFATrans(state, epsClosureList, head(inputs)) :: dfa.dfaTransTable;
 }
 
@@ -451,21 +457,6 @@ t :: DFATransition ::= fromState :: [Integer] toState :: [Integer] transChar :: 
 	t.DFAToState = toState;
 	t.transChar = transChar;
 }
-
-
-{-
-function presentInDFAStates
-Boolean ::= epslist :: [Integer] dfalist:: [[Integer]]
-{
-	return if null(dfalist)
-		then false
-		else
-			if epslist == head(dfalist)
-			then true
-			else
-				presentInDFAStates(epslist, tail(dfalist));
-}
--}
 
 function checkPresence
 Boolean ::= list :: [Integer] listOfList :: [[Integer]]
