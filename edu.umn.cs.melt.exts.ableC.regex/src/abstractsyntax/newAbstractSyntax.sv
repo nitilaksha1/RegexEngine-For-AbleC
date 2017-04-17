@@ -41,7 +41,7 @@ synthesized attribute dfa:: DFA;
 abstract production rootREGEX
 r::ROOT ::= x::REGEX
 {
-  r.pp = "[" ++ populatePPForDFA(getDFATranstable(x.nfa)) ++ "]";
+  r.pp = "\n\nTransition table for NFA: \n\n" ++ x.pp ++ "\n\nTransition table for DFA: \n\n" ++ "[" ++ populatePPForDFA(getDFATranstable(x.nfa)) ++ "]\n";
   -- r.pp = x.pp;
 }
 
