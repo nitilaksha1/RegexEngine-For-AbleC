@@ -1,1 +1,1 @@
-regex/a/;
+regex/(a|b)*abb/;

@@ -1,17 +1,24 @@
+-- Current status:
+-- 1) Conversion from REGEX to NFA to DFA is successful
+-- 2) Concrete syntax is not integrated with ableC ecosystem
+
+-- TO DO:
+-- 1) Declare a new type in ableC called regex
+-- 2) Add the regex engine to ableC ecosystem
+
 grammar edu:umn:cs:melt:exts:ableC:regex:src:concretesyntax;
 
 imports edu:umn:cs:melt:ableC:concretesyntax as cnc;
 imports silver:langutil only ast;
 imports edu:umn:cs:melt:ableC:abstractsyntax;
-
 imports edu:umn:cs:melt:exts:ableC:regex:src:abstractsyntax;
-
-marking terminal RegexBegin_t '/';
-terminal RegexEnd_t '/';
 
 lexer class REGEX_OPER;
 lexer class REGEX_ESC submits to REGEX_OPER;
 
+marking terminal RegexBegin_t '/';
+marking terminal Regex_t 'regex';
+terminal RegexEnd_t '/';
 terminal Kleene_t        '*' lexer classes { REGEX_OPER };
 terminal Choice_t        '|' lexer classes { REGEX_OPER };
 terminal RegexLParen_t   '(' lexer classes { REGEX_OPER };
@@ -21,7 +28,6 @@ terminal RegexChar_t     /./ lexer classes { REGEX_ESC }, submits to { cnc:Divid
 terminal EscapedChar_t /\\./ submits to { REGEX_ESC };
 
 nonterminal Root_c with root, pp;
-
 nonterminal Regex_RE with ast_REGEX, pp;     
 nonterminal Regex_C with ast_REGEX, pp;      
 nonterminal Regex_B with ast_REGEX, pp;    
@@ -32,8 +38,6 @@ synthesized attribute pp :: String;
 synthesized attribute root :: ROOT;
 synthesized attribute ast_REGEX :: REGEX;
 
-marking terminal Regex_t 'regex';
-
 concrete production regexp
 e :: Root_c ::= 'regex' d1 :: RegexBegin_t re::Regex_RE d2::RegexEnd_t ';'
 layout {}
@@ -41,20 +45,18 @@ layout {}
   e.root = rootREGEX(re.ast_REGEX);
 }
 
-{--concrete production regex_c
--- Some changes might be needed here
+{- 
+concrete production regex_c
 e::cnc:PrimaryExpr_c ::= d1::RegexBegin_t  re::Regex_RE  d2::RegexEnd_t
 layout {}
 {
-	-- e.root = createDFA(re.ast_REGEX);
-  -- Figure out a way to print the NFA, DFA
-  -- e.ast = createDFA(re.ast_REGEX);
-  -- e.ast = printNFA(re.ast_REGEX);
-
-  -- nth try to print NFA
-  e.ast = printString("Lalalalalal", location=e.location);
+	e.root = createDFA(re.ast_REGEX);
+  e.ast = createDFA(re.ast_REGEX);
+  e.ast = printNFA(re.ast_REGEX);
+  e.ast = printString("Lalalalalala", location=e.location);
 }
---}
+-}
+
 concrete production REtoC
 re::Regex_RE ::= c::Regex_C
 layout {}
