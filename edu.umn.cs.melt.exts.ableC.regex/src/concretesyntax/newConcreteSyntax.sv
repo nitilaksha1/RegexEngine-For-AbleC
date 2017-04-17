@@ -39,7 +39,7 @@ synthesized attribute root :: ROOT;
 synthesized attribute ast_REGEX :: REGEX;
 
 concrete production regexp
-e :: Root_c ::= 'regex' d1 :: RegexBegin_t re::Regex_RE d2::RegexEnd_t ';'
+e :: Root_c ::= 'regex' d1 :: RegexBegin_t re :: Regex_RE d2 :: RegexEnd_t ';'
 layout {}
 {
   e.root = rootREGEX(re.ast_REGEX);
@@ -47,7 +47,7 @@ layout {}
 
 {- 
 concrete production regex_c
-e::cnc:PrimaryExpr_c ::= d1::RegexBegin_t  re::Regex_RE  d2::RegexEnd_t
+e::cnc:PrimaryExpr_c ::= d1 :: RegexBegin_t  re :: Regex_RE  d2 :: RegexEnd_t
 layout {}
 {
 	e.root = createDFA(re.ast_REGEX);
@@ -58,63 +58,63 @@ layout {}
 -}
 
 concrete production REtoC
-re::Regex_RE ::= c::Regex_C
+re :: Regex_RE ::= c :: Regex_C
 layout {}
 {
   re.ast_REGEX = c.ast_REGEX;
 }
 
 concrete production REtoRE_bar_C
-re::Regex_RE ::= first::Regex_RE sep::Choice_t rest::Regex_C
+re :: Regex_RE ::= first :: Regex_RE sep :: Choice_t rest :: Regex_C
 layout {}
 {
   re.ast_REGEX = AlternationOp(first.ast_REGEX, rest.ast_REGEX);
 }
  
 concrete production CtoB
-c::Regex_C ::= b::Regex_B
+c :: Regex_C ::= b :: Regex_B
 layout {}
 {
   c.ast_REGEX = b.ast_REGEX;
 }
 
 concrete production CconcatenateB
-c::Regex_C ::= first::Regex_C rest::Regex_B
+c :: Regex_C ::= first :: Regex_C rest :: Regex_B
 layout {}
 {
   c.ast_REGEX = ConcatOp(first.ast_REGEX, rest.ast_REGEX);
 }
 
 concrete production BtoSim
-b::Regex_B ::= sim::Regex_Sim
+b :: Regex_B ::= sim :: Regex_Sim
 layout {}
 {
   b.ast_REGEX = sim.ast_REGEX;
 }
 
 concrete production BtoB_star
-b::Regex_B ::= first::Regex_B sep::Kleene_t
+b :: Regex_B ::= first :: Regex_B sep :: Kleene_t
 layout {}
 {
   b.ast_REGEX = KleeneOp(first.ast_REGEX);
 }
 
 concrete production BtoLP_RE_RP
-b::Regex_B ::= lp::RegexLParen_t re::Regex_RE rp::RegexRParen_t
+b :: Regex_B ::= lp :: RegexLParen_t re :: Regex_RE rp :: RegexRParen_t
 layout {}
 {
   b.ast_REGEX = re.ast_REGEX;
 }
 
 concrete production SimtoCHAR
-sim::Regex_Sim ::= char::Regex_CHAR
+sim :: Regex_Sim ::= char :: Regex_CHAR
 layout {}
 {
   sim.ast_REGEX = char.ast_REGEX;
 }
 
 concrete production CHARtochar
-top::Regex_CHAR ::= char:: RegexChar_t
+top :: Regex_CHAR ::= char :: RegexChar_t
 layout {}
 {
   top.ast_REGEX = NewNfa(char.lexeme);
