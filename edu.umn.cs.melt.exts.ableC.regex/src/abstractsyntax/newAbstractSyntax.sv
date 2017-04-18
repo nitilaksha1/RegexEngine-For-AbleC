@@ -580,6 +580,9 @@ String ::= intlist :: [Integer]
 
   -- 15. Test the population of dfaStates
   -- r.pp = getDFAStateList(removeDupDFAStates([[1,2], [0], [1]], []));
+
+  -- 16. Test mapperFunc
+  -- r.pp = printListOfPairs(mapperFunc([[0,1,2,3], [4,5,6,7], [8,9,10,11], [12,13,14,15]]));
   
   -- TESTING FRAMEWORK END
 
@@ -633,6 +636,32 @@ d :: DFATransition ::= fromState :: [Integer] toState :: [Integer] trans :: Stri
   	d.DFAFromState = fromState;
   	d.DFAToState = toState;
   	d.transChar = trans;
+}
+
+function mapperFunc
+[Pair<[Integer] Integer>] ::= stateList :: [[Integer]]
+{
+	return if null(stateList)
+	then
+		[]
+	else
+		pair(head(stateList), genInt()) :: mapperFunc(tail(stateList));
+}
+
+function printListOfPairs
+String ::= list :: [Pair<[Integer] Integer>]
+{
+	return if null(list)
+		then
+			""
+		else
+			getPairString(head(list)) ++ printListOfPairs(tail(list));
+}
+
+function getPairString
+String ::= pair :: Pair<[Integer] Integer>
+{
+	return "[" ++ getStringFromList(pair.fst) ++ "->" ++ toString(pair.snd) ++ "]\n";
 }
 
 ------------------------------------------------------------------------------------------------------
