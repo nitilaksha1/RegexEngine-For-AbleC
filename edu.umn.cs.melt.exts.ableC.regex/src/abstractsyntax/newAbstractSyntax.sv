@@ -39,18 +39,25 @@ synthesized attribute pp :: String;
 synthesized attribute dfa:: DFA;
 
 abstract production rootREGEX
-r::ROOT ::= x::REGEX
+r :: ROOT ::= x :: REGEX
 {
-  r.pp = "\n\nTransition table for NFA: \n\n" ++ x.pp ++ "\n\nTransition table for DFA: \n\n" ++ "[" ++ populatePPForDFA(getDFATranstable(x.nfa)) ++ "]\n";
-  -- r.pp = x.pp;
+   r.pp = "\n\nNFA Start State: 0" ++ 
+   "\nNFA State Count: " ++ toString(x.nfa.stateCount) ++ 
+   "\nNFA Final States: " ++ toString(x.nfa.finalStates) ++ 
+   "\nNFA Inputs: " ++ "[" ++ listStringPrint(x.nfa.inputs) ++ "]" ++ 
+   "\nNFA Transition Table: " ++ x.pp ++ 
+   "\n\nDFA Start State: " ++ getStringFromList((getDFAFromNFA(x.nfa)).dfaStartState) ++ 
+   "\nDFA Final States: " ++ getDFAStateList((getDFAFromNFA(x.nfa)).dfaFinalStates) ++ 
+   "\nDFA States: " ++ "[" ++ getDFAStateList((getDFAFromNFA(x.nfa)).dfaStates) ++ "]" ++ 
+   "\nDFA Transition Table: \n" ++ "[" ++ populatePPForDFA((getDFAFromNFA(x.nfa)).dfaTransTable) ++ "]\n";
 }
 
 -- Function to invoke subset construction algorithm
-function getDFATranstable
-[DFATransition] ::= nfa :: NFA
+function getDFAFromNFA
+DFA ::= nfa :: NFA
 {
 	local attribute nfa1 :: NFA = subsetConstruction(nfa);
-	return nfa1.dfa.dfaTransTable;
+	return nfa1.dfa;
 }
 
 -- Abstract production to handle Alternate (|) operator
@@ -206,7 +213,7 @@ nonterminal DFATransition with DFAFromState, DFAToState, transChar;
 
 -- Starting point of subset construction algorithm
 abstract production subsetConstruction
-n :: NFA ::= nfa::NFA
+n :: NFA ::= nfa :: NFA
 {
 	n.dfa = createDFA (nfa, epsClosureDFAFun(nfa, [0]), [epsClosure(nfa, [0])], []);
 	-- TODO: Add code to generate unique IDs
@@ -224,6 +231,7 @@ d :: DFA ::= epsClosureRes :: [Integer]
 	d.dfaStartState = epsClosureRes;
 	d.dfaStates = [d.dfaStartState];
 	d.dfaTransTable = [];
+	d.dfaFinalStates = [];
 }
 
 -- CLOSURE FUNCTION IMPLEMENTATION
@@ -584,7 +592,7 @@ String ::= list :: [String]
 	then
 		""
 	else
-		"[" ++ head(list) ++ " " ++ listStringPrint(tail(list)) ++ "]";	
+		 head(list) ++ " " ++ listStringPrint(tail(list));	
 }
 
 function epsTest
@@ -600,7 +608,7 @@ String ::= list :: [[Integer]]
 		then
 			""
 		else
-			"[" ++ getStringFromList(head(list)) ++ getDFAStateList(tail(list)) ++ "]";
+			getStringFromList(head(list)) ++ ", " ++ getDFAStateList(tail(list));
 }
 
 function getDFATransitionString
