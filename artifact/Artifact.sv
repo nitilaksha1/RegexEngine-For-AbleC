@@ -28,7 +28,6 @@ IOVal<Integer> ::= args::[String] io_in::IO
   print_success = 
     print(
            "\n\n" ++
-           "CST pretty print: " ++
            r_ast.an:pp
            , text.io );
 
