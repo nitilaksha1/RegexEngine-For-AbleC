@@ -151,7 +151,7 @@ matchInfo match_anywhere (struct DFA * dfa, char * str)
 	{
 		res.startindex = -1;
 		res.matchlength= -1;
-		res.nextpos = endPos + 1;
+		res.nextpos = endMatchPos + 1;
 		res.matchfound = FALSE;
 		return res;
 	}

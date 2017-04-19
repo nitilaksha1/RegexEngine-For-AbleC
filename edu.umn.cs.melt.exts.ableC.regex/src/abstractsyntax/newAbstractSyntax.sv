@@ -41,15 +41,7 @@ synthesized attribute dfa:: DFA;
 abstract production rootREGEX
 r :: ROOT ::= x :: REGEX
 {
-   r.pp = "\n\nNFA Start State: 0" ++ 
-   "\nNFA State Count: " ++ toString(x.nfa.stateCount) ++ 
-   "\nNFA Final States: " ++ toString(x.nfa.finalStates) ++ 
-   "\nNFA Inputs: " ++ "[" ++ listStringPrint(x.nfa.inputs) ++ "]" ++ 
-   "\nNFA Transition Table: " ++ x.pp ++ 
-   "\n\nDFA Start State: " ++ getStringFromList((getDFAFromNFA(x.nfa)).dfaStartState) ++ 
-   "\nDFA Final States: " ++ getDFAStateList((getDFAFromNFA(x.nfa)).dfaFinalStates) ++ 
-   "\nDFA States: " ++ "[" ++ getDFAStateList((getDFAFromNFA(x.nfa)).dfaStates) ++ "]" ++ 
-   "\nDFA Transition Table: \n" ++ "[" ++ populatePPForDFA((getDFAFromNFA(x.nfa)).dfaTransTable) ++ "]\n";
+   r.pp = (getDFAFromNFA(x.nfa)).c;
 }
 
 -- Function to invoke subset construction algorithm
@@ -199,7 +191,7 @@ String ::= transitions :: [Transition]
 -- SUBSET CONSTRUCTION ALGORITHM IMPLEMENTATION
 
 -- DFA is a type with arributes which are startState, list of finalStates, transTable, states
-nonterminal DFA with dfaStartState, dfaFinalStates, dfaTransTable, dfaStates, c;
+nonterminal DFA with dfaStartState, dfaFinalStates, dfaTransTable, dfaStates, dfaMapper, c;
 
 synthesized attribute dfaStartState :: [Integer];
 synthesized attribute dfaStates :: [[Integer]];
@@ -208,6 +200,7 @@ synthesized attribute dfaTransTable :: [DFATransition];
 synthesized attribute c :: String;
 synthesized attribute DFAFromState :: [Integer];
 synthesized attribute DFAToState :: [Integer];
+synthesized attribute dfaMapper :: [Pair<[Integer] Integer>];
 
 nonterminal DFATransition with DFAFromState, DFAToState, transChar;
 
@@ -215,8 +208,80 @@ nonterminal DFATransition with DFAFromState, DFAToState, transChar;
 abstract production subsetConstruction
 n :: NFA ::= nfa :: NFA
 {
-	n.dfa = createDFA (nfa, epsClosureDFAFun(nfa, [0]), [epsClosure(nfa, [0])], []);
-	-- TODO: Add code to generate unique IDs
+	n.dfa = populateCCode
+			(
+				populateMapper
+				(
+					createDFA (nfa, epsClosureDFAFun(nfa, [0]), [epsClosure(nfa, [0])], [])
+				)
+			);
+}
+
+-- This function populates the mapper between list of states and unique ID generated for each state
+function populateMapper
+DFA ::= dfa :: DFA
+{
+	return helperPopulateMapper(dfa);
+}
+
+abstract production helperPopulateMapper
+semiFinalDFA :: DFA ::= dfa :: DFA
+{
+	semiFinalDFA.dfaStartState = dfa.dfaStartState;
+	semiFinalDFA.dfaFinalStates = dfa.dfaFinalStates;
+	semiFinalDFA.dfaTransTable = dfa.dfaTransTable;
+	semiFinalDFA.dfaStates = dfa.dfaStates;	
+	semiFinalDFA.c = dfa.c;
+	semiFinalDFA.dfaMapper = mapperFunc(dfa.dfaStates, 0);
+}
+
+-- This function creates the C code
+function populateCCode
+DFA ::= dfa :: DFA
+{
+	return helperPopulateCCode(dfa);
+}
+
+abstract production helperPopulateCCode
+finalDFA :: DFA ::= dfa :: DFA
+{
+	finalDFA.dfaStartState = dfa.dfaStartState;
+	finalDFA.dfaFinalStates = dfa.dfaFinalStates;
+	finalDFA.dfaTransTable = dfa.dfaTransTable;
+	finalDFA.dfaStates = dfa.dfaStates;
+	finalDFA.dfaMapper = dfa.dfaMapper;
+
+	finalDFA.c =
+	"#include <stdio.h>\n" ++
+	"#include \"dfa.h\"\n" ++
+	"#include \"regex.h\"\n\n" ++
+
+	"extern void init_DFA (struct DFA *, state, int);\n" ++
+	"extern void add_trans (struct DFA *, state, state, input);\n" ++
+	"extern void set_final_state (struct DFA *, state);\n" ++
+	"extern eBool match (struct DFA *, char *);\n" ++
+	"extern void release_DFA (struct DFA *);\n\n" ++
+
+	"int main(int argc, char ** argv)\n" ++
+	"{\n\n" ++
+	"\tstruct DFA dfa1;\n" ++
+	"\tinit_DFA (&dfa1, " ++ toString(lookup(sortBy(lteSilver, dfa.dfaStartState), dfa.dfaMapper)) ++ ", " ++ toString(getStateCount(dfa.dfaStates, 0)) ++ ");\n" ++
+	getFinalStatesCCode(dfa.dfaFinalStates, dfa.dfaMapper) ++
+	getTransitionsCCode(dfa.dfaTransTable, dfa.dfaMapper) ++
+	"\n\tchar text[50];\n" ++
+	"\tprintf(\"Enter a string: \");\n" ++
+	"\tgets(text);\n\n" ++
+  	"\tif (test_full_string (&dfa1, text) == TRUE)\n" ++ 
+  	"\t{\n" ++
+    "\t\tprintf(\"text matches regex\");\n" ++
+    "\t}\n" ++ 
+    "\telse\n" ++ 
+    "\t{\n" ++
+    "\t\tprintf(\"text does not match first regex\");\n" ++
+    "\t}\n\n" ++
+    "\trelease_DFA (&dfa1);\n" ++
+    "\treturn 0;\n" ++
+    "}\n";
 }
 
 function epsClosureDFAFun
@@ -229,9 +294,11 @@ abstract production epsClosureDFA
 d :: DFA ::= epsClosureRes :: [Integer]
 {
 	d.dfaStartState = epsClosureRes;
-	d.dfaStates = [d.dfaStartState];
+	d.dfaStates = [sortBy(lteSilver, d.dfaStartState)];
 	d.dfaTransTable = [];
 	d.dfaFinalStates = [];
+	d.dfaMapper = [];
+	d.c = "";
 }
 
 -- CLOSURE FUNCTION IMPLEMENTATION
@@ -315,10 +382,22 @@ d :: DFA ::= state :: [Integer] inputs :: [String] dfa :: DFA nfa :: NFA
 	local attribute epsClosureList :: [Integer];
 	epsClosureList = epsClosure (nfa, move(state, head(inputs), nfa));  
 
-	d.dfaStates = removeDupDFAStates(epsClosureList :: dfa.dfaStates, []);
+	d.dfaStates = helperDFAStates(epsClosureList, dfa.dfaStates);
 	d.dfaStartState = dfa.dfaStartState;
 	d.dfaFinalStates = dfa.dfaFinalStates;
+	d.c = dfa.c;
+	d.dfaMapper = dfa.dfaMapper;
 	d.dfaTransTable = getUpdatedTransTable(state, epsClosureList, head(inputs), dfa.dfaTransTable);
+}
+
+function helperDFAStates
+[[Integer]] ::= list :: [Integer] states :: [[Integer]]
+{
+	return if null(list)
+	then
+		states
+	else
+		removeDupDFAStates(sortBy(lteSilver, list) :: states, []);	
 }
 
 function getUpdatedTransTable
@@ -341,8 +420,8 @@ DFATransition ::= fromState :: [Integer] toState :: [Integer] transChar :: Strin
 abstract production initDFATrans
 t :: DFATransition ::= fromState :: [Integer] toState :: [Integer] transChar :: String
 {
-	t.DFAFromState = fromState;
-	t.DFAToState = toState;
+	t.DFAFromState = sortBy(lteSilver, fromState);
+	t.DFAToState = sortBy(lteSilver, toState);
 	t.transChar = transChar;
 }
 
@@ -353,6 +432,8 @@ d :: DFA ::= state :: [Integer] dfa :: DFA
 	d.dfaStates = dfa.dfaStates;
 	d.dfaTransTable = dfa.dfaTransTable;
 	d.dfaFinalStates = state :: dfa.dfaFinalStates;
+	d.c = dfa.c;
+	d.dfaMapper = dfa.dfaMapper;
 }
 
 abstract production UpdateDFAForNfa
@@ -526,8 +607,9 @@ String ::= intlist :: [Integer]
 }
 
 ------------------------------------------------------------------------------------------------------
-C CODE GENERATION FUNCTIONS
+-- C CODE GENERATION FUNCTIONS
 ------------------------------------------------------------------------------------------------------
+
 function getStateCount
 Integer ::=  states :: [[Integer]] num :: Integer
 {
@@ -539,19 +621,29 @@ Integer ::=  states :: [[Integer]] num :: Integer
 }
 
 function getTransitionsCCode
-String ::= dfatransTable :: [DFATransition]
+String ::= dfatransTable :: [DFATransition] dfaMap :: [Pair<[Integer] Integer>]
 {
 	return if null(dfatransTable)
 		then 
 			""
 		else
-			stringFromTransition(head(dfatransTable)) ++ getTransitionsCCode(tail(dfatransTable));
+			stringFromTransition(head(dfatransTable), dfaMap) ++ getTransitionsCCode(tail(dfatransTable), dfaMap);
 }
 
 function stringFromTransition
-String ::= transition :: DFATransition
+String ::= transition :: DFATransition dfaMap :: [Pair<[Integer] Integer>]
 {
-	return "add_trans(dfa1," ++ toString(transition.DFAFromState) ++ "," ++ toString(transition.DFAToState) ++ "," ++ "'" ++ transition.transChar ++ "'" ++ ");";
+	return "\tadd_trans(&dfa1," ++ toString(lookup(transition.DFAFromState, dfaMap)) ++ "," ++ toString(lookup(transition.DFAToState, dfaMap)) ++ "," ++ "'" ++ transition.transChar ++ "'" ++ ");\n";
+}
+
+function getFinalStatesCCode
+String ::= finalstates :: [[Integer]] dfaMap :: [Pair<[Integer] Integer>]
+{
+	return if null(finalstates)
+		then
+			""
+		else
+			"\tset_final_state(&dfa1," ++ toString(lookup(head(finalstates), dfaMap)) ++ ");\n" ++ getFinalStatesCCode(tail(finalstates), dfaMap);
 }
 
 ------------------------------------------------------------------------------------------------------
@@ -612,6 +704,18 @@ String ::= transition :: DFATransition
 
   -- 16. Test mapperFunc
   -- r.pp = printListOfPairs(mapperFunc([[0,1,2,3], [4,5,6,7], [8,9,10,11], [12,13,14,15]]));
+
+  {-
+   r.pp = "\n\nNFA Start State: 0" ++ 
+   "\nNFA State Count: " ++ toString(x.nfa.stateCount) ++ 
+   "\nNFA Final States: " ++ toString(x.nfa.finalStates) ++ 
+   "\nNFA Inputs: " ++ "[" ++ listStringPrint(x.nfa.inputs) ++ "]" ++ 
+   "\nNFA Transition Table: " ++ x.pp ++ 
+   "\n\nDFA Start State: " ++ getStringFromList((getDFAFromNFA(x.nfa)).dfaStartState) ++ 
+   "\nDFA Final States: " ++ getDFAStateList((getDFAFromNFA(x.nfa)).dfaFinalStates) ++ 
+   "\nDFA States: " ++ "[" ++ getDFAStateList((getDFAFromNFA(x.nfa)).dfaStates) ++ "]" ++ 
+   "\nDFA Transition Table: \n" ++ "[" ++ populatePPForDFA((getDFAFromNFA(x.nfa)).dfaTransTable) ++ "]\n";
+   -}
   
   -- TESTING FRAMEWORK END
 
@@ -668,13 +772,13 @@ d :: DFATransition ::= fromState :: [Integer] toState :: [Integer] trans :: Stri
 }
 
 function mapperFunc
-[Pair<[Integer] Integer>] ::= stateList :: [[Integer]]
+[Pair<[Integer] Integer>] ::= stateList :: [[Integer]] counter :: Integer
 {
 	return if null(stateList)
 	then
 		[]
 	else
-		pair(head(stateList), genInt()) :: mapperFunc(tail(stateList));
+		pair(head(stateList), counter) :: mapperFunc(tail(stateList), counter+1);
 }
 
 function printListOfPairs
@@ -691,6 +795,20 @@ function getPairString
 String ::= pair :: Pair<[Integer] Integer>
 {
 	return "[" ++ getStringFromList(pair.fst) ++ "->" ++ toString(pair.snd) ++ "]\n";
+}
+
+function lookup
+Integer ::= stateList :: [Integer] dictionary :: [Pair<[Integer] Integer>]
+{
+	return if null(dictionary)
+	then 
+		-1
+	else
+		if checkPresenceLevelTwo(stateList, head(dictionary).fst)
+		then 
+			head(dictionary).snd
+		else 
+			lookup(stateList, tail(dictionary));
 }
 
 ------------------------------------------------------------------------------------------------------
