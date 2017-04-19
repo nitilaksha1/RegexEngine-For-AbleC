@@ -526,6 +526,35 @@ String ::= intlist :: [Integer]
 }
 
 ------------------------------------------------------------------------------------------------------
+C CODE GENERATION FUNCTIONS
+------------------------------------------------------------------------------------------------------
+function getStateCount
+Integer ::=  states :: [[Integer]] num :: Integer
+{
+	return if null(states)
+		then 
+			num
+		else
+			getStateCount(tail(states), num + 1);
+}
+
+function getTransitionsCCode
+String ::= dfatransTable :: [DFATransition]
+{
+	return if null(dfatransTable)
+		then 
+			""
+		else
+			stringFromTransition(head(dfatransTable)) ++ getTransitionsCCode(tail(dfatransTable));
+}
+
+function stringFromTransition
+String ::= transition :: DFATransition
+{
+	return "add_trans(dfa1," ++ toString(transition.DFAFromState) ++ "," ++ toString(transition.DFAToState) ++ "," ++ "'" ++ transition.transChar ++ "'" ++ ");";
+}
+
+------------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------
 
   -- TESTING FRAMEWORK -- 
