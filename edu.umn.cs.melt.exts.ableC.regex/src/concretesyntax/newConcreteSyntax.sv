@@ -16,15 +16,15 @@ imports edu:umn:cs:melt:exts:ableC:regex:src:abstractsyntax;
 lexer class REGEX_OPER;
 lexer class REGEX_ESC submits to REGEX_OPER;
 
-marking terminal RegexBegin_t '/';
-marking terminal Regex_t 'regex';
+terminal RegexBegin_t '/';
+-- marking terminal Regex_t 'regex';
 terminal RegexEnd_t '/';
 terminal Kleene_t        '*' lexer classes { REGEX_OPER };
 terminal Choice_t        '|' lexer classes { REGEX_OPER };
 terminal RegexLParen_t   '(' lexer classes { REGEX_OPER };
 terminal RegexRParen_t   ')' lexer classes { REGEX_OPER };
 terminal RegexWildcard_t '.' lexer classes { REGEX_OPER };
-terminal RegexChar_t     /./ lexer classes { REGEX_ESC }, submits to { cnc:Divide_t };
+terminal RegexChar_t     /a/ lexer classes { REGEX_ESC }, submits to { cnc:Divide_t };
 terminal EscapedChar_t /\\./ submits to { REGEX_ESC };
 
 nonterminal Root_c with root, pp;
@@ -38,6 +38,11 @@ synthesized attribute pp :: String;
 synthesized attribute root :: ROOT;
 synthesized attribute ast_REGEX :: REGEX;
 
+
+-- Uncomment to get DFA from regex
+-- This has not been integrated with ableC
+{-
+
 concrete production regexp
 e :: Root_c ::= 'regex' d1 :: RegexBegin_t re :: Regex_RE d2 :: RegexEnd_t ';'
 layout {}
@@ -45,17 +50,26 @@ layout {}
   e.root = rootREGEX(re.ast_REGEX);
 }
 
-{- 
-concrete production regex_c
-e::cnc:PrimaryExpr_c ::= d1 :: RegexBegin_t  re :: Regex_RE  d2 :: RegexEnd_t
+-}
+
+-- Integration with ableC start
+
+marking terminal RegexMatch_t '=~';
+
+concrete productions top :: cnc:AddMulNoneOp_c | '=~'
+{ 
+  top.ast = dummyProd(location=top.location);
+}
+
+concrete production regexp
+e :: cnc:PrimaryExpr_c ::= d1 :: RegexBegin_t re :: Regex_RE d2 :: RegexEnd_t
 layout {}
 {
-	e.root = createDFA(re.ast_REGEX);
-  e.ast = createDFA(re.ast_REGEX);
-  e.ast = printNFA(re.ast_REGEX);
-  e.ast = printString("Lalalalalala", location=e.location);
+  --e.root = rootREGEX(re.ast_REGEX);
 }
--}
+
+-- Integration with AbleC end
+
 
 concrete production REtoC
 re :: Regex_RE ::= c :: Regex_C

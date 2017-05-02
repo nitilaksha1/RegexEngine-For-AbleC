@@ -1,16 +1,16 @@
 -- Current Status:
 -- 1) REGEX to NFA conversion works
 -- 2) NFA to DFA conversion works
+-- 3) Generate C code for the DFA
 
 -- TO DO:
--- 1) Generate C code for the DFA
+-- 1) Integration with ableC
 
 grammar edu:umn:cs:melt:exts:ableC:regex:src:abstractsyntax;
 
 imports edu:umn:cs:melt:ableC:abstractsyntax;
 imports silver:langutil;
 imports silver:langutil:pp;
-imports edu:umn:cs:melt:exts:ableC:regex:src:concretesyntax;
 
 -- nonterminal ROOT with pp, regex;
 nonterminal ROOT with pp, regex;
@@ -37,6 +37,18 @@ synthesized attribute toState :: Integer;
 synthesized attribute transChar :: String;
 synthesized attribute pp :: String;
 synthesized attribute dfa:: DFA;
+
+-- Integration with ableC start
+
+abstract production dummyProd
+top :: Expr ::=
+{
+   forwards to txtExpr("Hello World", location=top.location);
+   
+   --forwards to injectGlobalDeclsExpr(consDecl(txtDecl("int a"), nilDecl()), txtExpr("5", --location=top.location), location=top.location);
+}
+
+-- Integration with ableC end
 
 abstract production rootREGEX
 r :: ROOT ::= x :: REGEX
@@ -191,7 +203,7 @@ String ::= transitions :: [Transition]
 -- SUBSET CONSTRUCTION ALGORITHM IMPLEMENTATION
 
 -- DFA is a type with arributes which are startState, list of finalStates, transTable, states
-nonterminal DFA with dfaStartState, dfaFinalStates, dfaTransTable, dfaStates, dfaMapper, c;
+nonterminal DFA with dfaStartState, dfaFinalStates, dfaTransTable, dfaStates, dfaMapper, c, dfaSize;
 
 synthesized attribute dfaStartState :: [Integer];
 synthesized attribute dfaStates :: [[Integer]];
@@ -201,6 +213,7 @@ synthesized attribute c :: String;
 synthesized attribute DFAFromState :: [Integer];
 synthesized attribute DFAToState :: [Integer];
 synthesized attribute dfaMapper :: [Pair<[Integer] Integer>];
+synthesized attribute dfaSize :: Integer;
 
 nonterminal DFATransition with DFAFromState, DFAToState, transChar;
 
@@ -232,6 +245,7 @@ semiFinalDFA :: DFA ::= dfa :: DFA
 	semiFinalDFA.dfaTransTable = dfa.dfaTransTable;
 	semiFinalDFA.dfaStates = dfa.dfaStates;	
 	semiFinalDFA.c = dfa.c;
+	semiFinalDFA.dfaSize = getStateCount(dfa.dfaStates, 0);
 	semiFinalDFA.dfaMapper = mapperFunc(dfa.dfaStates, 0);
 }
 
@@ -250,6 +264,7 @@ finalDFA :: DFA ::= dfa :: DFA
 	finalDFA.dfaTransTable = dfa.dfaTransTable;
 	finalDFA.dfaStates = dfa.dfaStates;
 	finalDFA.dfaMapper = dfa.dfaMapper;
+	finalDFA.dfaSize = dfa.dfaSize;
 
 	finalDFA.c =
 	"#include <stdio.h>\n" ++
@@ -265,7 +280,7 @@ finalDFA :: DFA ::= dfa :: DFA
 	"int main(int argc, char ** argv)\n" ++
 	"{\n\n" ++
 	"\tstruct DFA dfa1;\n" ++
-	"\tinit_DFA (&dfa1, " ++ toString(lookup(sortBy(lteSilver, dfa.dfaStartState), dfa.dfaMapper)) ++ ", " ++ toString(getStateCount(dfa.dfaStates, 0)) ++ ");\n" ++
+	"\tinit_DFA (&dfa1, " ++ toString(lookup(sortBy(lteSilver, dfa.dfaStartState), dfa.dfaMapper)) ++ ", " ++ toString(dfa.dfaSize) ++ ");\n" ++
 	getFinalStatesCCode(dfa.dfaFinalStates, dfa.dfaMapper) ++
 	getTransitionsCCode(dfa.dfaTransTable, dfa.dfaMapper) ++
 	"\n\tchar text[50];\n" ++
@@ -273,11 +288,11 @@ finalDFA :: DFA ::= dfa :: DFA
 	"\tgets(text);\n\n" ++
   	"\tif (test_full_string (&dfa1, text) == TRUE)\n" ++ 
   	"\t{\n" ++
-    "\t\tprintf(\"text matches regex\");\n" ++
+    "\t\tprintf(\"Text matches regex\");\n" ++
     "\t}\n" ++ 
     "\telse\n" ++ 
     "\t{\n" ++
-    "\t\tprintf(\"text does not match first regex\");\n" ++
+    "\t\tprintf(\"Text does not match regex\");\n" ++
     "\t}\n\n" ++
     "\trelease_DFA (&dfa1);\n" ++
     "\treturn 0;\n" ++
@@ -299,6 +314,7 @@ d :: DFA ::= epsClosureRes :: [Integer]
 	d.dfaFinalStates = [];
 	d.dfaMapper = [];
 	d.c = "";
+	d.dfaSize = 0;
 }
 
 -- CLOSURE FUNCTION IMPLEMENTATION
@@ -387,6 +403,7 @@ d :: DFA ::= state :: [Integer] inputs :: [String] dfa :: DFA nfa :: NFA
 	d.dfaFinalStates = dfa.dfaFinalStates;
 	d.c = dfa.c;
 	d.dfaMapper = dfa.dfaMapper;
+	d.dfaSize = dfa.dfaSize;
 	d.dfaTransTable = getUpdatedTransTable(state, epsClosureList, head(inputs), dfa.dfaTransTable);
 }
 
@@ -433,6 +450,7 @@ d :: DFA ::= state :: [Integer] dfa :: DFA
 	d.dfaTransTable = dfa.dfaTransTable;
 	d.dfaFinalStates = state :: dfa.dfaFinalStates;
 	d.c = dfa.c;
+	d.dfaSize = dfa.dfaSize;
 	d.dfaMapper = dfa.dfaMapper;
 }
 

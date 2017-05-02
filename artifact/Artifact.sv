@@ -1,3 +1,7 @@
+-- Uncomment to get DFA from regex
+-- This has not been integrated with ableC
+
+{-
 grammar artifact;
 
 import edu:umn:cs:melt:ableC:concretesyntax as cst;
@@ -40,3 +44,27 @@ IOVal<Integer> ::= args::[String] io_in::IO
      then ioval(print("Parse error:\n" ++ result.parseErrors ++ "\n", text.io), 2)
      else ioval(print_success, 0);
 }
+-}
+
+-- Integration with ableC start
+
+grammar artifact;
+
+import edu:umn:cs:melt:ableC:concretesyntax as cst;
+import edu:umn:cs:melt:ableC:drivers:compile;
+import edu:umn:cs:melt:exts:ableC:regex:src:concretesyntax as cn;
+import edu:umn:cs:melt:exts:ableC:regex:src:abstractsyntax as an;
+
+parser extendedParser :: cst:Root
+{
+  edu:umn:cs:melt:ableC:concretesyntax;
+  edu:umn:cs:melt:exts:ableC:regex;
+} 
+
+function main
+IOVal<Integer> ::= args::[String] io_in::IO
+{
+  return driver(args, io_in, extendedParser);
+}
+
+-- Integration with ableC end
