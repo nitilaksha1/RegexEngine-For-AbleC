@@ -29,19 +29,15 @@ Thompson's construction is a recursive algorithm that works by splitting the reg
 
 Following four expressions are handled by our implementation of Thompson's construction:
 * Expression with a single input unit  
-```abstract production NewNfa
-```
+```abstract production NewNfa```
 
 * Concatenation expression  
-```abstract production ConcatOp
-```
+```abstract production ConcatOp```
 * Kleene star expression  
-```abstract production KleeneOp
-```
+```abstract production KleeneOp```
 
 * Alternation (or union) expression  
-```abstract production AlternationOp
-```
+```abstract production AlternationOp```
 
 The NFA returned by our implementation of Thompson's construction is a non terminal with the following attributes:
 * Count of states
