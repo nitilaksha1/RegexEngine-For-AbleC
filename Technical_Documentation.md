@@ -94,3 +94,7 @@ The DFA returned by our implementation of Thompson's construction is a non termi
   * ```int test_full_string (struct DFA * dfa, char * str)```: <br />
     Returns true if the prefix of the given string matches the regular expression.<br />
   * For additional API documentation, check ```Regex API Doc.md```
+
+#### TO DO:
+* New type for regex in ableC
+* Add more functions to regex.h
