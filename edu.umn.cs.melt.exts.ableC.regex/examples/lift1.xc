@@ -1,18 +1,21 @@
 #include <stdio.h>
-
-void dummyFunc(int a, char *b)
-{
-	printf("Hello, I got called !");
-}
+#include "dfa.h"
+#include "regex.h"
 
 int main (int argc, char **argv) 
 {
-	const char *text="Test String";
-	if(text =~ /a/)
-		printf("IF is true");
+	char *var="abbaabbd";
+	if(var =~/(a|b)*abb/)
+		printf("MATCH\n");
 	else
-		printf("ELSE is true");
+		printf("NO MATCH\n");
 
+	// 
+
+	char *tar="abbaabb";
+	if(tar =~/(a|b)*abb/)
+		printf("MATCH\n");
+	else
+		printf("NO MATCH\n");
 	return 0;
 }
-

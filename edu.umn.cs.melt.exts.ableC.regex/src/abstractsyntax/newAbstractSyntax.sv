@@ -38,29 +38,79 @@ synthesized attribute transChar :: String;
 synthesized attribute pp :: String;
 synthesized attribute dfa:: DFA;
 
--- Integration with ableC start
 
 abstract production dummyProd
-top :: Expr ::=
+top :: Expr ::= left :: String x :: REGEX
 {
-   forwards to txtExpr("Hello World", location=top.location);
-   
-   --forwards to injectGlobalDeclsExpr(consDecl(txtDecl("int a"), nilDecl()), txtExpr("5", --location=top.location), location=top.location);
+	--forwards to txtExpr("Test Code", location=top.location);
+	local attribute attr :: [String];
+	attr = ("dfa" ++ toString(genInt())) :: attr;
+
+	forwards to injectGlobalDeclsExpr(
+    consDecl(
+    	txtDecl(
+    		getCString(head(attr),
+    			getDFAFromNFA(head(attr), x.nfa))), nilDecl()), 
+
+    txtExpr(
+    	"init_" ++ head(attr) ++ "() && test_full_string (&" ++ head(attr) ++ ", " ++ left ++ ")", location=top.location), location=top.location);
+    
 }
 
--- Integration with ableC end
+{-
+Figure out later
+
+abstract production dummyProd
+top :: Expr ::= left :: Expr right :: Expr
+{
+    forwards to txtExpr(
+    	"Dummy string 2", location=top.location);
+}
 
 abstract production rootREGEX
-r :: ROOT ::= x :: REGEX
+r :: Expr ::= x :: REGEX
 {
-   r.pp = (getDFAFromNFA(x.nfa)).c;
+   forwards to injectGlobalDeclsExpr(
+    consDecl(
+    	txtDecl(
+    		getCString(
+    			getDFAFromNFA(x.nfa))), nilDecl()), 
+    	txtExpr(
+    		"Dummy string", location=r.location),
+    	location=r.location);
+}
+
+abstract production myNilExpr
+top :: Expr ::= 
+{
+	
+}
+-}
+
+function getCString
+String ::= var :: String dfa :: DFA
+{
+	return "struct DFA " ++ var ++ ";\n\n" ++ 
+    "int init_" ++ var ++ "() {\n" ++
+	"\tstatic int done = 0;\n\n" ++	
+	"\tif (!done) {\n" ++
+	"\tinit_DFA (&" ++ var ++ ", " ++ 
+	toString(lookup(sortBy(lteSilver, dfa.dfaStartState), dfa.dfaMapper)) ++ 
+	", " ++ 
+	toString(dfa.dfaSize) ++ 
+	");\n" ++
+	getFinalStatesCCode(var, dfa.dfaFinalStates, dfa.dfaMapper) ++
+	getTransitionsCCode(var, dfa.dfaTransTable, dfa.dfaMapper) ++ 
+	"\n}" ++
+	"\nreturn 1;" ++
+	"\n}";
 }
 
 -- Function to invoke subset construction algorithm
 function getDFAFromNFA
-DFA ::= nfa :: NFA
+DFA ::= var :: String nfa :: NFA
 {
-	local attribute nfa1 :: NFA = subsetConstruction(nfa);
+	local attribute nfa1 :: NFA = subsetConstruction(var, nfa);
 	return nfa1.dfa;
 }
 
@@ -219,10 +269,10 @@ nonterminal DFATransition with DFAFromState, DFAToState, transChar;
 
 -- Starting point of subset construction algorithm
 abstract production subsetConstruction
-n :: NFA ::= nfa :: NFA
+n :: NFA ::= var :: String nfa :: NFA
 {
 	n.dfa = populateCCode
-			(
+			(   var,
 				populateMapper
 				(
 					createDFA (nfa, epsClosureDFAFun(nfa, [0]), [epsClosure(nfa, [0])], [])
@@ -251,13 +301,13 @@ semiFinalDFA :: DFA ::= dfa :: DFA
 
 -- This function creates the C code
 function populateCCode
-DFA ::= dfa :: DFA
+DFA ::= var :: String dfa :: DFA
 {
-	return helperPopulateCCode(dfa);
+	return helperPopulateCCode(var, dfa);
 }
 
 abstract production helperPopulateCCode
-finalDFA :: DFA ::= dfa :: DFA
+finalDFA :: DFA ::= var :: String dfa :: DFA
 {
 	finalDFA.dfaStartState = dfa.dfaStartState;
 	finalDFA.dfaFinalStates = dfa.dfaFinalStates;
@@ -279,14 +329,14 @@ finalDFA :: DFA ::= dfa :: DFA
 
 	"int main(int argc, char ** argv)\n" ++
 	"{\n\n" ++
-	"\tstruct DFA dfa1;\n" ++
-	"\tinit_DFA (&dfa1, " ++ toString(lookup(sortBy(lteSilver, dfa.dfaStartState), dfa.dfaMapper)) ++ ", " ++ toString(dfa.dfaSize) ++ ");\n" ++
-	getFinalStatesCCode(dfa.dfaFinalStates, dfa.dfaMapper) ++
-	getTransitionsCCode(dfa.dfaTransTable, dfa.dfaMapper) ++
+	"\tstruct DFA " ++ var ++";\n" ++
+	"\tinit_DFA (&" ++ var ++ ", " ++ toString(lookup(sortBy(lteSilver, dfa.dfaStartState), dfa.dfaMapper)) ++ ", " ++ toString(dfa.dfaSize) ++ ");\n" ++
+	getFinalStatesCCode(var, dfa.dfaFinalStates, dfa.dfaMapper) ++
+	getTransitionsCCode(var, dfa.dfaTransTable, dfa.dfaMapper) ++
 	"\n\tchar text[50];\n" ++
 	"\tprintf(\"Enter a string: \");\n" ++
 	"\tgets(text);\n\n" ++
-  	"\tif (test_full_string (&dfa1, text) == TRUE)\n" ++ 
+  	"\tif (test_full_string (&" ++ var ++ ", text) == TRUE)\n" ++ 
   	"\t{\n" ++
     "\t\tprintf(\"Text matches regex\");\n" ++
     "\t}\n" ++ 
@@ -294,7 +344,7 @@ finalDFA :: DFA ::= dfa :: DFA
     "\t{\n" ++
     "\t\tprintf(\"Text does not match regex\");\n" ++
     "\t}\n\n" ++
-    "\trelease_DFA (&dfa1);\n" ++
+    "\trelease_DFA (&" ++ var ++ ");\n" ++
     "\treturn 0;\n" ++
     "}\n";
 }
@@ -639,29 +689,29 @@ Integer ::=  states :: [[Integer]] num :: Integer
 }
 
 function getTransitionsCCode
-String ::= dfatransTable :: [DFATransition] dfaMap :: [Pair<[Integer] Integer>]
+String ::= var :: String dfatransTable :: [DFATransition] dfaMap :: [Pair<[Integer] Integer>]
 {
 	return if null(dfatransTable)
 		then 
 			""
 		else
-			stringFromTransition(head(dfatransTable), dfaMap) ++ getTransitionsCCode(tail(dfatransTable), dfaMap);
+			stringFromTransition(var, head(dfatransTable), dfaMap) ++ getTransitionsCCode(var, tail(dfatransTable), dfaMap);
 }
 
 function stringFromTransition
-String ::= transition :: DFATransition dfaMap :: [Pair<[Integer] Integer>]
+String ::= var :: String transition :: DFATransition dfaMap :: [Pair<[Integer] Integer>]
 {
-	return "\tadd_trans(&dfa1," ++ toString(lookup(transition.DFAFromState, dfaMap)) ++ "," ++ toString(lookup(transition.DFAToState, dfaMap)) ++ "," ++ "'" ++ transition.transChar ++ "'" ++ ");\n";
+	return "\tadd_trans(&" ++ var ++"," ++ toString(lookup(transition.DFAFromState, dfaMap)) ++ "," ++ toString(lookup(transition.DFAToState, dfaMap)) ++ "," ++ "'" ++ transition.transChar ++ "'" ++ ");\n";
 }
 
 function getFinalStatesCCode
-String ::= finalstates :: [[Integer]] dfaMap :: [Pair<[Integer] Integer>]
+String ::= var :: String finalstates :: [[Integer]] dfaMap :: [Pair<[Integer] Integer>]
 {
 	return if null(finalstates)
 		then
 			""
 		else
-			"\tset_final_state(&dfa1," ++ toString(lookup(head(finalstates), dfaMap)) ++ ");\n" ++ getFinalStatesCCode(tail(finalstates), dfaMap);
+			"\tset_final_state(&" ++ var ++ "," ++ toString(lookup(head(finalstates), dfaMap)) ++ ");\n" ++ getFinalStatesCCode(var, tail(finalstates), dfaMap);
 }
 
 ------------------------------------------------------------------------------------------------------

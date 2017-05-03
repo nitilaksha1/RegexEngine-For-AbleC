@@ -47,8 +47,8 @@ void init_DFA (struct DFA * dfa, state init_state, int size) {
     }
 }
 
-void set_final_state (struct DFA *dfa, int state) {
-	dfa->final_state[state] = 1;
+void set_final_state (struct DFA *dfa, state state1) {
+	dfa->final_state[state1] = 1;
 }
 
 eBool is_legal_state (struct DFA * dfa, state st) {
@@ -72,8 +72,8 @@ eBool is_final_state (struct DFA * dfa, state st) {
 
 void add_trans (struct DFA * dfa, state from, state to, input in) {
 
-	assert (is_legal_state(dfa, from));
-	assert (is_legal_state(dfa, to));
+	//assert (is_legal_state(dfa, from));
+	//assert (is_legal_state(dfa, to));
 
 	(dfa->trans_table)[from][in] = to;
 }

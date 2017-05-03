@@ -6,6 +6,7 @@
 #include <string.h>
 #include <stdlib.h>
 
+/*
 typedef struct matchInfo {
 
 	int startindex;
@@ -13,27 +14,29 @@ typedef struct matchInfo {
 	int nextpos;
 	eBool matchfound;
 } matchInfo;
+*/
 
-eBool test_full_string (struct DFA * dfa, char * str) {
-	state state = get_start_state(dfa);
+int test_full_string (struct DFA * dfa, char * str) {
+	state state1 = get_start_state(dfa);
 	input in = str[0];
 	int i = 0;
 
 	while (str[i++] != '\0') {
-		state = (dfa->trans_table)[state][in];
+		state1 = (dfa->trans_table)[state1][in];
 
-		if (state == -1)
+		if (state1 == -1)
 			break;
 
 		in = str[i];
 	}
 
-	if (is_final_state(dfa, state) == TRUE)
-		return TRUE;
+	if (is_final_state(dfa, state1) == TRUE)
+		return 1;
 	else
-		return FALSE;
+		return 0;
 }
 
+/*
 eBool test_string_prefix (struct DFA * dfa, char * str) {
 	state state = get_start_state(dfa);
 	int len = strlen(str);
@@ -176,5 +179,5 @@ matchInfo match_anywhere (struct DFA * dfa, char * str)
 		return res;
 	}
 }
-
+*/
 #endif
