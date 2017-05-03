@@ -3,9 +3,6 @@
 -- 2) Concrete syntax is not integrated with ableC ecosystem
 -- 3) Add the regex engine to ableC ecosystem
 
--- TO DO:
--- 1) Declare a new type in ableC called regex
-
 grammar edu:umn:cs:melt:exts:ableC:regex:src:concretesyntax;
 
 imports edu:umn:cs:melt:ableC:concretesyntax as cnc;

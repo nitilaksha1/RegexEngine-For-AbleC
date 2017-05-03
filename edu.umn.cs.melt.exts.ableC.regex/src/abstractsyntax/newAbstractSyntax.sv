@@ -4,9 +4,6 @@
 -- 3) Generate C code for the DFA
 -- 4) Integration with ableC
 
--- TO DO:
--- 1) --
-
 grammar edu:umn:cs:melt:exts:ableC:regex:src:abstractsyntax;
 
 imports edu:umn:cs:melt:ableC:abstractsyntax as ast;
