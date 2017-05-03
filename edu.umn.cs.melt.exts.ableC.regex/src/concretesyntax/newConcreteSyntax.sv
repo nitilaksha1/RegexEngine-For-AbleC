@@ -1,10 +1,10 @@
 -- Current status:
 -- 1) Conversion from REGEX to NFA to DFA is successful
 -- 2) Concrete syntax is not integrated with ableC ecosystem
+-- 3) Add the regex engine to ableC ecosystem
 
 -- TO DO:
 -- 1) Declare a new type in ableC called regex
--- 2) Add the regex engine to ableC ecosystem
 
 grammar edu:umn:cs:melt:exts:ableC:regex:src:concretesyntax;
 
@@ -17,7 +17,6 @@ lexer class REGEX_OPER;
 lexer class REGEX_ESC submits to REGEX_OPER;
 
 terminal RegexBegin_t '/';
--- marking terminal Regex_t 'regex';
 terminal RegexEnd_t '/';
 terminal Kleene_t        '*' lexer classes { REGEX_OPER };
 terminal Choice_t        '|' lexer classes { REGEX_OPER };
@@ -41,34 +40,11 @@ synthesized attribute ast_REGEX :: REGEX;
 marking terminal RegexMatch_t '=~';
 
 concrete production regexp
-e :: cnc:PrimaryExpr_c ::= 
-  left :: cnc:Identifier_t
-  '=~' 
-  d1 :: RegexBegin_t 
-  re :: Regex_RE 
-  d2 :: RegexEnd_t
+e :: cnc:PrimaryExpr_c ::= left :: cnc:PrimaryExpr_c '=~' RegexBegin_t re :: Regex_RE d2 :: RegexEnd_t
 layout {}
 {
-  e.ast = dummyProd(left.lexeme, re.ast_REGEX, location=e.location);
+  e.ast = dummyProd(left.ast, re.ast_REGEX, location=e.location);
 }
-
-{- 
-
-Figure out later 
-
-concrete productions top :: cnc:AddMulNoneOp_c | '=~'
-{ 
-  top.ast = dummyProd(top.cnc:leftExpr, top.cnc:rightExpr, location=top.cnc:exprLocation);
-}
-
-concrete production regexp
-e :: cnc:PrimaryExpr_c ::= d1 :: RegexBegin_t re :: Regex_RE d2 :: RegexEnd_t
-layout {}
-{
-  e.ast = rootREGEX(re.ast_REGEX, location=e.location);
-}
-
--}
 
 concrete production REtoC
 re :: Regex_RE ::= c :: Regex_C

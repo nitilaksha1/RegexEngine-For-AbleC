@@ -2,21 +2,22 @@
 -- 1) REGEX to NFA conversion works
 -- 2) NFA to DFA conversion works
 -- 3) Generate C code for the DFA
+-- 4) Integration with ableC
 
 -- TO DO:
--- 1) Integration with ableC
+-- 1) --
 
 grammar edu:umn:cs:melt:exts:ableC:regex:src:abstractsyntax;
 
-imports edu:umn:cs:melt:ableC:abstractsyntax;
+imports edu:umn:cs:melt:ableC:abstractsyntax as ast;
 imports silver:langutil;
 imports silver:langutil:pp;
 
 -- nonterminal ROOT with pp, regex;
-nonterminal ROOT with pp, regex;
+nonterminal ROOT with regex;
 
 -- REGEX is a type with NFA and pp
-nonterminal REGEX with pp, nfa;
+nonterminal REGEX with nfa;
 
 -- NFA is a type with three arributes which are stateCount, finalState and transTable
 nonterminal NFA with stateCount, finalStates, transTable, inputs, dfa;
@@ -35,57 +36,23 @@ synthesized attribute transTable :: [Transition];
 synthesized attribute fromState :: Integer;
 synthesized attribute toState :: Integer;
 synthesized attribute transChar :: String;
-synthesized attribute pp :: String;
 synthesized attribute dfa:: DFA;
 
-
 abstract production dummyProd
-top :: Expr ::= left :: String x :: REGEX
+top :: ast:Expr ::= left :: ast:Expr right :: REGEX
 {
-	--forwards to txtExpr("Test Code", location=top.location);
+
 	local attribute attr :: [String];
 	attr = ("dfa" ++ toString(genInt())) :: attr;
 
-	forwards to injectGlobalDeclsExpr(
-    consDecl(
-    	txtDecl(
+    forwards to ast:injectGlobalDeclsExpr(
+    ast:consDecl(
+    	ast:txtDecl(
     		getCString(head(attr),
-    			getDFAFromNFA(head(attr), x.nfa))), nilDecl()), 
-
-    txtExpr(
-    	"init_" ++ head(attr) ++ "() && test_full_string (&" ++ head(attr) ++ ", " ++ left ++ ")", location=top.location), location=top.location);
-    
+    			getDFAFromNFA(head(attr), right.nfa))), ast:nilDecl()), 
+    	ast:txtExpr(
+    		"init_" ++ head(attr) ++ "() && test_full_string (&" ++ head(attr) ++ ", " ++ left.pp.result ++ ")", location=top.location), location=top.location);
 }
-
-{-
-Figure out later
-
-abstract production dummyProd
-top :: Expr ::= left :: Expr right :: Expr
-{
-    forwards to txtExpr(
-    	"Dummy string 2", location=top.location);
-}
-
-abstract production rootREGEX
-r :: Expr ::= x :: REGEX
-{
-   forwards to injectGlobalDeclsExpr(
-    consDecl(
-    	txtDecl(
-    		getCString(
-    			getDFAFromNFA(x.nfa))), nilDecl()), 
-    	txtExpr(
-    		"Dummy string", location=r.location),
-    	location=r.location);
-}
-
-abstract production myNilExpr
-top :: Expr ::= 
-{
-	
-}
--}
 
 function getCString
 String ::= var :: String dfa :: DFA
@@ -119,7 +86,7 @@ abstract production AlternationOp
 e :: REGEX ::= l :: REGEX r :: REGEX
 {
 	e.nfa = AlternationOpFun(l.nfa, r.nfa); 
-	e.pp = populatePP(e.nfa.transTable);
+	--e.pp = populatePP(e.nfa.transTable);
 }
 
 -- Function handle Alternate (|) operator
@@ -138,7 +105,7 @@ abstract production KleeneOp
 e :: REGEX ::= param :: REGEX
 {
 	e.nfa = KleeneOpFun(param.nfa);
-	e.pp = populatePP(e.nfa.transTable);
+	--e.pp = populatePP(e.nfa.transTable);
 }
 
 -- Function to handle Kleene (*) operator
@@ -157,7 +124,7 @@ abstract production ConcatOp
 e :: REGEX ::= l :: REGEX r :: REGEX
 {
 	e.nfa = ConcatOpFun(l.nfa, r.nfa);
-	e.pp = populatePP(e.nfa.transTable);
+	--e.pp = populatePP(e.nfa.transTable);
 }
 
 -- Function to concatenate two NFAs and produce the resultant NFA
@@ -176,7 +143,7 @@ abstract production NewNfa
 e :: REGEX ::= param :: String
 {
 	e.nfa = NewNfaFun(param);
-	e.pp = populatePP(e.nfa.transTable);
+	--e.pp = populatePP(e.nfa.transTable);
 }
 
 -- Function to create a new NFA for a single unit
