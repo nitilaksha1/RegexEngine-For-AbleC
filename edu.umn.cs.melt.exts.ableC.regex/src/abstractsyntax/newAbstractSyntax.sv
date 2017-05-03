@@ -13,10 +13,10 @@ imports edu:umn:cs:melt:ableC:abstractsyntax as ast;
 imports silver:langutil;
 imports silver:langutil:pp;
 
--- nonterminal ROOT with pp, regex;
+-- nonterminal ROOT with regex;
 nonterminal ROOT with regex;
 
--- REGEX is a type with NFA and pp
+-- REGEX is a type with NFA
 nonterminal REGEX with nfa;
 
 -- NFA is a type with three arributes which are stateCount, finalState and transTable
@@ -38,10 +38,11 @@ synthesized attribute toState :: Integer;
 synthesized attribute transChar :: String;
 synthesized attribute dfa:: DFA;
 
-abstract production dummyProd
+-- Top level prodcution which lifts the DFA struct declaration to global level
+-- Replaces the =~ operator with call to test_full_string()
+abstract production regexExtensionProd
 top :: ast:Expr ::= left :: ast:Expr right :: REGEX
 {
-
 	local attribute attr :: [String];
 	attr = ("dfa" ++ toString(genInt())) :: attr;
 
@@ -51,25 +52,26 @@ top :: ast:Expr ::= left :: ast:Expr right :: REGEX
     		getCString(head(attr),
     			getDFAFromNFA(head(attr), right.nfa))), ast:nilDecl()), 
     	ast:txtExpr(
-    		"init_" ++ head(attr) ++ "() && test_full_string (&" ++ head(attr) ++ ", " ++ left.pp.result ++ ")", location=top.location), location=top.location);
+    		"match_" ++ head(attr) ++ "(" ++ left.pp.result ++ ")", location=top.location), location=top.location);
 }
 
+-- Populates the C code is lifted to top
 function getCString
 String ::= var :: String dfa :: DFA
 {
-	return "struct DFA " ++ var ++ ";\n\n" ++ 
-    "int init_" ++ var ++ "() {\n" ++
-	"\tstatic int done = 0;\n\n" ++	
-	"\tif (!done) {\n" ++
+	return "int match_" ++ var ++ "(char *str) {\n" ++
+	"\tstruct DFA " ++ var ++ ";\n\n" ++ 
+	"\tint res = 0;\n\n" ++
 	"\tinit_DFA (&" ++ var ++ ", " ++ 
 	toString(lookup(sortBy(lteSilver, dfa.dfaStartState), dfa.dfaMapper)) ++ 
-	", " ++ 
+	", " ++
 	toString(dfa.dfaSize) ++ 
 	");\n" ++
 	getFinalStatesCCode(var, dfa.dfaFinalStates, dfa.dfaMapper) ++
 	getTransitionsCCode(var, dfa.dfaTransTable, dfa.dfaMapper) ++ 
-	"\n}" ++
-	"\nreturn 1;" ++
+	"\tres = test_full_string (&" ++ var ++ ", " ++ "str" ++ ");\n" ++
+	"\trelease_DFA (&" ++ var ++ ");\n" ++
+	"\n\treturn res;" ++
 	"\n}";
 }
 
@@ -200,6 +202,7 @@ t :: Transition ::= fromState :: Integer toState :: Integer transChar :: String
 	t.transChar = transChar;
 }
 
+-- Use only for testing and debugging
 function populatePP
 String ::= transitions :: [Transition]
 {
@@ -267,12 +270,15 @@ semiFinalDFA :: DFA ::= dfa :: DFA
 }
 
 -- This function creates the C code
+-- Has no functional use
 function populateCCode
 DFA ::= var :: String dfa :: DFA
 {
 	return helperPopulateCCode(var, dfa);
 }
 
+-- Populates a dummy C code
+-- Use this only for testing/debugging
 abstract production helperPopulateCCode
 finalDFA :: DFA ::= var :: String dfa :: DFA
 {

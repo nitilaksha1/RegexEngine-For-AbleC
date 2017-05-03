@@ -721,12 +721,11 @@ char  *populateStr(const char  * str, char  * s)
     return (s);
   }
 }
-struct DFA dfa33;
+int match_dfa33(char *str) {
+	struct DFA dfa33;
 
-int init_dfa33() {
-	static int done = 0;
+	int res = 0;
 
-	if (!done) {
 	init_DFA (&dfa33, 4, 5);
 	set_final_state(&dfa33,2);
 	add_trans(&dfa33,1,0,'a');
@@ -739,16 +738,16 @@ int init_dfa33() {
 	add_trans(&dfa33,0,3,'b');
 	add_trans(&dfa33,4,0,'a');
 	add_trans(&dfa33,4,1,'b');
+	res = test_full_string (&dfa33, str);
+	release_DFA (&dfa33);
 
+	return res;
 }
-return 1;
-}
-struct DFA dfa34;
+int match_dfa34(char *str) {
+	struct DFA dfa34;
 
-int init_dfa34() {
-	static int done = 0;
+	int res = 0;
 
-	if (!done) {
 	init_DFA (&dfa34, 4, 5);
 	set_final_state(&dfa34,2);
 	add_trans(&dfa34,1,0,'a');
@@ -761,9 +760,10 @@ int init_dfa34() {
 	add_trans(&dfa34,0,3,'b');
 	add_trans(&dfa34,4,0,'a');
 	add_trans(&dfa34,4,1,'b');
+	res = test_full_string (&dfa34, str);
+	release_DFA (&dfa34);
 
-}
-return 1;
+	return res;
 }
 
 signed int main(signed int  argc, char  * * argv)
@@ -771,14 +771,14 @@ signed int main(signed int  argc, char  * * argv)
 
   {
     char  *str = ((char *)((malloc)(((sizeof(char)) * 9))));;
-    if (init_dfa33() && test_full_string (&dfa33, ((populateStr("abbaabbd", (str))))))
+    if (match_dfa33(((populateStr("abbaabbd", (str))))))
     {
       ((printf)("MATCH\n"));
     } else {
       ((printf)("NO MATCH\n"));
     }
     char  *tar = "abbaabb";;
-    if (init_dfa34() && test_full_string (&dfa34, (tar)))
+    if (match_dfa34((tar)))
     {
       ((printf)("MATCH\n"));
     } else {

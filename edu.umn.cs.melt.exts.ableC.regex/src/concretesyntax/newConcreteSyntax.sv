@@ -43,7 +43,7 @@ concrete production regexp
 e :: cnc:PrimaryExpr_c ::= left :: cnc:PrimaryExpr_c '=~' RegexBegin_t re :: Regex_RE d2 :: RegexEnd_t
 layout {}
 {
-  e.ast = dummyProd(left.ast, re.ast_REGEX, location=e.location);
+  e.ast = regexExtensionProd(left.ast, re.ast_REGEX, location=e.location);
 }
 
 concrete production REtoC
