@@ -24,5 +24,8 @@ int main (int argc, char **argv)
 		printf("MATCH\n");
 	else
 		printf("NO MATCH\n");
+		
+	free(str);
+	
 	return 0;
 }
