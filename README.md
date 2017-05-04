@@ -2,7 +2,7 @@ https://github.umn.edu/melt/edu.umn.cs.melt.exts.ableC.regex
 
 # Regex Engine for ableC
 
-### Team Memembers:
+### Team Members:
 * Ambuj Nayan
 * Nitilaksha Halakatti
 
